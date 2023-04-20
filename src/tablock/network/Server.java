@@ -4,7 +4,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
 import tablock.core.Player;
-import tablock.network.packet.Packet.ClientPacket;
+import tablock.network.packet.Packet;
 import tablock.network.packet.server.PlayerPositionsPacket;
 
 import java.net.DatagramPacket;
@@ -35,7 +35,7 @@ public class Server extends Network
 	@Override
 	protected void respondToPacket(byte[] packet, DatagramPacket receivedPacket)
 	{
-		ClientPacket clientPacket = (ClientPacket) deserializePacket(packet);
+		Packet.ClientPacket clientPacket = (Packet.ClientPacket) deserializePacket(packet);
 		
 		clientPacket.respondToClientPacket(this, receivedPacket, players);
 	}

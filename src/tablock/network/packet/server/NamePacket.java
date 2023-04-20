@@ -2,13 +2,13 @@ package tablock.network.packet.server;
 
 import tablock.core.Player;
 import tablock.network.Client;
-import tablock.network.packet.Packet.ServerPacket;
+import tablock.network.packet.Packet;
 
 import java.io.Serial;
 import java.net.InetAddress;
 import java.util.List;
 
-public class NamePacket implements ServerPacket
+public class NamePacket implements Packet.ServerPacket
 {
 	@Serial
 	private static final long serialVersionUID = -4295288205191646156L;

@@ -2,7 +2,6 @@ package tablock.network;
 
 import tablock.core.Player;
 import tablock.network.packet.Packet;
-import tablock.network.packet.Packet.ServerPacket;
 import tablock.network.packet.client.DisconnectPacket;
 
 import java.net.DatagramPacket;
@@ -34,7 +33,7 @@ public class Client extends Network
 	@Override
 	public void respondToPacket(byte[] packet, DatagramPacket receivedPacket)
 	{
-		ServerPacket serverPacket = (ServerPacket) deserializePacket(packet);
+		Packet.ServerPacket serverPacket = (Packet.ServerPacket) deserializePacket(packet);
 		
 		serverPacket.respondToServerPacket(this, onlinePlayers, player);
 	}
