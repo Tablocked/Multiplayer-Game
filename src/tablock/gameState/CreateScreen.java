@@ -4,9 +4,9 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Rectangle;
 import org.dyn4j.geometry.Vector2;
 import tablock.core.*;
-import tablock.gameState.Renderer.GameState;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.CircularButtonStrip;
 import tablock.userInterface.ImageButton;
@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class CreateScreen extends GameState
+public class CreateScreen implements GameState
 {
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 1080);
@@ -31,8 +31,8 @@ public class CreateScreen extends GameState
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private ArrayList<Platform> platforms;
     private boolean platformMode = false;
-    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchGameState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
-    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> switchGameState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
+    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
+    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
     private final CircularButtonStrip objectButtons = new CircularButtonStrip(platformButton);
 
@@ -48,7 +48,7 @@ public class CreateScreen extends GameState
         ButtonStrip.Orientation.VERTICAL,
 
         new TextButton(960, 340, "Resume", 100, () -> paused = false),
-        new TextButton(960, 540, "Quit To Main Menu", 100, () -> switchGameState(new TitleScreen())),
+        new TextButton(960, 540, "Quit To Main Menu", 100, () -> Renderer.setCurrentState(new TitleScreen())),
         new TextButton(960, 740, "Quit To Desktop", 100, () -> System.exit(0))
     );
 
@@ -96,6 +96,8 @@ public class CreateScreen extends GameState
         double[] hoveredObjectYValues = null;
         double[] selectedObjectXValues = null;
         double[] selectedObjectYValues = null;
+        int selectedObjectIndex = 0;
+        Platform[] orderedPlatforms = new Platform[platforms.size()];
 
         if(Input.PAUSE.wasJustActivated())
         {
@@ -108,7 +110,14 @@ public class CreateScreen extends GameState
 
         gc.setLineWidth(10);
 
-        for(Platform platform : platforms)
+        for(int i = 0; i < platforms.size(); i++)
+            if(selectedObject == platforms.get(i))
+                selectedObjectIndex = i;
+
+        for(int i = 0; i < platforms.size(); i++)
+            orderedPlatforms[i] = platforms.get((i + selectedObjectIndex) % platforms.size());
+
+        for(Platform platform : orderedPlatforms)
         {
             Vector2[] vertices = platform.getVertices();
             double[] xValues = new double[vertices.length];
@@ -127,20 +136,23 @@ public class CreateScreen extends GameState
 
             boolean beingHoveredByMouse = polygon.contains(screenMouse);
 
-            if(!paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null)
+            if(!paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null && hoveredObjectXValues == null)
                 if(beingHoveredByMouse)
                 {
                     if(Input.MOUSE_LEFT.wasJustActivated())
                         objectBeingClicked = platform;
 
-                    if(platform.equals(objectBeingClicked) && !Input.MOUSE_LEFT.isActive())
+                    if(platform == objectBeingClicked && !Input.MOUSE_LEFT.isActive())
                     {
                         objectBeingClicked = null;
 
-                        selectedObject = selectedObject == platform ? null : platform;
+                        selectedObject = platform == selectedObject ? null : platform;
+
+                        hoveredObjectXValues = selectedObjectXValues;
+                        hoveredObjectYValues = selectedObjectYValues;
                     }
 
-                    if(!platform.equals(selectedObject))
+                    if(platform != selectedObject)
                     {
                         hoveredObjectXValues = xValues;
                         hoveredObjectYValues = yValues;
@@ -149,7 +161,7 @@ public class CreateScreen extends GameState
                 else if(objectBeingClicked == platform)
                     objectBeingClicked = null;
 
-            if(platform.equals(selectedObject))
+            if(platform == selectedObject)
             {
                 selectedObjectXValues = xValues;
                 selectedObjectYValues = yValues;
@@ -186,8 +198,11 @@ public class CreateScreen extends GameState
                     double[] xValues = {point1.getX(), point1.getX(), screenMouse.getX(), screenMouse.getX()};
                     double[] yValues = {point1.getY(), screenMouse.getY(), screenMouse.getY(), point1.getY()};
 
-                    gc.setFill(Color.rgb(0, 0, 0, 0.5));
-                    gc.fillPolygon(xValues, yValues, 4);
+                    gc.setStroke(Color.GOLD);
+                    gc.setLineWidth(10);
+                    gc.setLineDashes(20);
+                    gc.strokePolygon(xValues, yValues, 4);
+                    gc.setLineDashes(0);
                 }
                 else if(objectPlacementStart != null && objectPlacementStart.distance(worldMouse) != 0)
                 {
@@ -244,6 +259,12 @@ public class CreateScreen extends GameState
             {
                 if(objectPlacementStart != null)
                     objectPlacementStart = null;
+                else if(!new Rectangle(0, 0, 1920, 1080).contains(getScreenPoint(worldInterfacePosition)))
+                {
+                    interfaceOpen = true;
+                    worldInterfacePosition = worldMouse;
+                    currentInterface = mainInterfaceButtons;
+                }
                 else if(currentInterface == mainInterfaceButtons)
                 {
                     interfaceOpen = !interfaceOpen;
@@ -260,7 +281,7 @@ public class CreateScreen extends GameState
 
         if(interfaceOpen)
         {
-            Point2D interfacePosition = getScreenPoint(worldInterfacePosition);
+            Point2D screenInterfacePosition = getScreenPoint(worldInterfacePosition);
             double hologramOffset = 25 * scale;
             double hologramLength = 50 * scale;
 
@@ -269,13 +290,15 @@ public class CreateScreen extends GameState
             if(playFromStartButton.isSelected())
                 gc.fillRect(offset.getX() - hologramOffset, offset.getY() + (-600 * scale) - hologramOffset, hologramLength, hologramLength);
             else if(playFromHereButton.isSelected())
-                gc.fillRect(interfacePosition.getX() - hologramOffset, interfacePosition.getY() - hologramOffset, hologramLength, hologramLength);
+                gc.fillRect(screenInterfacePosition.getX() - hologramOffset, screenInterfacePosition.getY() - hologramOffset, hologramLength, hologramLength);
 
             platformButton.setForceHighlighted(platformMode);
 
             currentInterface.setFrozen(paused || objectPlacementStart != null);
-            currentInterface.render(interfacePosition.getX(), interfacePosition.getY(), gc);
+            currentInterface.render(screenInterfacePosition.getX(), screenInterfacePosition.getY(), gc);
         }
+        else
+            currentInterface.deselectAllButtons();
 
         if(paused)
         {

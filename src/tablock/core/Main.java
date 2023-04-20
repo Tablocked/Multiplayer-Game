@@ -42,20 +42,6 @@ public class Main extends Application
 		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
 		stage.setFullScreen(true);
 		stage.show();
-
-		try
-		{
-			for(int i = 0; i < 3; i++)
-			{
-				Level level = new Level(new Vertex[]{new Vertex(500, 0), new Vertex(500, 500), new Vertex(0, 500), new Vertex(0, 0)});
-
-				Files.write(Path.of(SAVE_DIRECTORY + "/levels/test" + i), Main.serializeObject(level));
-			}
-		}
-		catch(IOException e)
-		{
-			throw new RuntimeException(e);
-		}
 	}
 
 	private static void createFolder(String path)

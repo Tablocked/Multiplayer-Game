@@ -8,7 +8,6 @@ import javafx.scene.text.Font;
 import tablock.core.Input;
 import tablock.core.Level;
 import tablock.core.Main;
-import tablock.gameState.Renderer.GameState;
 import tablock.userInterface.*;
 
 import java.io.File;
@@ -19,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class LevelSelectScreen extends GameState
+public class LevelSelectScreen implements GameState
 {
     private ButtonStrip levelButtonStrip;
     private ButtonStrip optionButtonStrip;
@@ -30,7 +29,7 @@ public class LevelSelectScreen extends GameState
     private final InputIndicatorStrip levelInputIndicatorStrip;
     private final InputIndicatorStrip optionInputIndicatorStrip;
     private final InputIndicatorStrip deleteInputIndicatorStrip;
-    private final Button backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> switchGameState(new TitleScreen()));
+    private final Button backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> Renderer.setCurrentState(new TitleScreen()));
     private final Button leftArrowButton = new ImageButton(870, 880, Main.getTexture("leftArrowButton"), () -> {page--; createButtons();});
     private final Button rightArrowButton = new ImageButton(1050, 900, Main.getTexture("rightArrowButton"), () -> {page++; createButtons();});
 
@@ -146,8 +145,8 @@ public class LevelSelectScreen extends GameState
 
     private void onLevelButtonActivation(File level, Button renameButton, int yPosition)
     {
-        Button playButton = new TextButton("Play", 50, () -> switchGameState(new PlayScreen(deserializeLevel(level))));
-        Button editButton = new TextButton("Edit", 50, () -> switchGameState(new CreateScreen(deserializeLevel(level))));
+        Button playButton = new TextButton("Play", 50, () -> Renderer.setCurrentState(new PlayScreen(deserializeLevel(level))));
+        Button editButton = new TextButton("Edit", 50, () -> Renderer.setCurrentState(new CreateScreen(deserializeLevel(level))));
         Button deleteButton = new TextButton("Delete", 50, () -> onDeleteButtonActivation(yPosition, level));
 
         optionButtonStrip = new ButtonStrip(ButtonStrip.Orientation.HORIZONTAL, 1384, yPosition, 10, playButton, editButton, renameButton, deleteButton);

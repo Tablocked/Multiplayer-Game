@@ -11,15 +11,19 @@ import tablock.core.Input;
 
 public class Renderer
 {
-    private GameState currentState;
+    private static GameState currentState;
     private final GraphicsContext gc;
 
-    public Renderer(GameState startingState, GraphicsContext gc)
+    public Renderer(GameState currentState, GraphicsContext gc)
     {
-        this.currentState = startingState;
-        this.gc = gc;
+        Renderer.currentState = currentState;
 
-        currentState.renderer = this;
+        this.gc = gc;
+    }
+
+    public static void setCurrentState(GameState currentState)
+    {
+        Renderer.currentState = currentState;
     }
 
     public void start()
@@ -66,19 +70,5 @@ public class Renderer
         Bounds textShape = getTextShape(text, gc);
 
         gc.fillText(text, x - (textShape.getWidth() / 2), y - (textShape.getHeight() / 2));
-    }
-
-    public static abstract class GameState
-    {
-        protected Renderer renderer;
-
-        protected void switchGameState(GameState nextState)
-        {
-            nextState.renderer = renderer;
-
-            renderer.currentState = nextState;
-        }
-
-        public abstract void renderNextFrame(GraphicsContext gc);
     }
 }

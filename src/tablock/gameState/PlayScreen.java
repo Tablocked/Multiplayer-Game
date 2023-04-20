@@ -4,14 +4,13 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import org.dyn4j.geometry.Vector2;
 import tablock.core.*;
-import tablock.gameState.Renderer.GameState;
 import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
 import java.util.List;
 
-public class PlayScreen extends GameState
+public class PlayScreen implements GameState
 {
     private long frameTime = System.nanoTime();
     private boolean paused = false;
@@ -23,7 +22,7 @@ public class PlayScreen extends GameState
         ButtonStrip.Orientation.VERTICAL,
 
         new TextButton(960, 340, "Resume", 100, () -> paused = false),
-        new TextButton(960, 540, "Quit To Main Menu", 100, () -> switchGameState(new TitleScreen())),
+        new TextButton(960, 540, "Quit To Main Menu", 100, () -> Renderer.setCurrentState(new TitleScreen())),
         new TextButton(960, 740, "Quit To Desktop", 100, () -> System.exit(0))
     );
 
@@ -103,7 +102,7 @@ public class PlayScreen extends GameState
 
                 Input.setMouseHidden(false);
 
-                switchGameState(createScreen);
+                Renderer.setCurrentState(createScreen);
 
                 return;
             }
