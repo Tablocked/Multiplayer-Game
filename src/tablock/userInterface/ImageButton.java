@@ -5,7 +5,7 @@ import javafx.scene.image.Image;
 
 public class ImageButton extends Button
 {
-    private Image image;
+    private final Image image;
 
     public ImageButton(double x, double y, Image image, ActivationHandler activationHandler)
     {
@@ -21,7 +21,7 @@ public class ImageButton extends Button
     {
         this(0, 0, image, activationHandler);
 
-        this.setHoverText(hoverText);
+        this.hoverText = hoverText;
     }
 
     @Override

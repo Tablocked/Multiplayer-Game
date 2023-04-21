@@ -1,6 +1,7 @@
 package tablock.userInterface;
 
 import javafx.geometry.Bounds;
+import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -15,13 +16,16 @@ public abstract class Button
     protected double y;
     protected double width;
     protected double height;
+    protected String hoverText;
     private ActivationHandler activationHandler;
     private Input input;
     private boolean beingClicked = false;
     private boolean selected = false;
     private boolean forceHighlighted = false;
     private boolean circular = false;
-    private String hoverText;
+    private boolean canBeDragged = false;
+    private Point2D mousePositionDuringDragStart;
+    private Point2D positionDuringDragStart;
     private boolean hoverTextLeftSided = false;
     private Color selectedColor = Color.GREEN;
     private Color deselectedColor = Color.RED;
@@ -36,35 +40,53 @@ public abstract class Button
         this.activationHandler = activationHandler;
     }
 
-    public void render(GraphicsContext gc)
+    public void checkForActivation()
     {
-        if(hidden)
-            return;
-
         Rectangle2D rectangularShape = new Rectangle2D(x - (width / 2), y - (height / 2), width, height);
         double diagonal = Math.sqrt(2 * Math.pow(width, 2));
         Circle circularShape = new Circle(x, y, diagonal / 2);
-        double offset = diagonal / 2;
+        Point2D mousePosition = Input.getMousePosition();
 
         if(!frozen && Input.isUsingMouseControls())
         {
-            if((rectangularShape.contains(Input.getMousePosition()) && !circular) || (circularShape.contains(Input.getMousePosition()) && circular))
+            if((rectangularShape.contains(mousePosition) && !circular) || (circularShape.contains(mousePosition) && circular))
             {
                 selected = true;
 
-                if(Input.MOUSE_LEFT.wasJustActivated())
-                    beingClicked = true;
-
-                if(beingClicked && !Input.MOUSE_LEFT.isActive())
+                if(canBeDragged && Input.MOUSE_LEFT.wasJustActivated())
                 {
-                    beingClicked = false;
+                    mousePositionDuringDragStart = mousePosition;
+                    positionDuringDragStart = new Point2D(x, y);
+                }
+                else
+                {
+                    if(Input.MOUSE_LEFT.wasJustActivated())
+                        beingClicked = true;
 
-                    activationHandler.onActivation();
+                    if(beingClicked && !Input.MOUSE_LEFT.isActive())
+                    {
+                        beingClicked = false;
+
+                        activationHandler.onActivation();
+                    }
                 }
             }
             else
             {
                 selected = beingClicked = false;
+            }
+
+            if(canBeDragged)
+            {
+                if(Input.MOUSE_LEFT.isActive() && mousePositionDuringDragStart != null)
+                {
+                    Point2D newPosition = positionDuringDragStart.subtract(mousePositionDuringDragStart.subtract(mousePosition));
+
+                    x = newPosition.getX();
+                    y = newPosition.getY();
+                }
+                else if(!Input.MOUSE_LEFT.isActive())
+                    mousePositionDuringDragStart = null;
             }
         }
 
@@ -72,6 +94,18 @@ public abstract class Button
             activationHandler.onActivation();
 
         preventActivation = false;
+    }
+
+    public void render(GraphicsContext gc)
+    {
+        if(hidden)
+            return;
+
+        Rectangle2D rectangularShape = new Rectangle2D(x - (width / 2), y - (height / 2), width, height);
+        double diagonal = Math.sqrt(2 * Math.pow(width, 2));
+        double offset = diagonal / 2;
+
+        checkForActivation();
 
         if(selected && hoverText != null)
         {
@@ -87,7 +121,7 @@ public abstract class Button
             gc.fillText(hoverText, x + offset - xOffset + (hoverTextLeftSided ? -20 : 10), y + (offset / 2));
         }
 
-        gc.setFill(selected || forceHighlighted ? selectedColor : deselectedColor);
+        gc.setFill(selected || forceHighlighted || mousePositionDuringDragStart != null ? selectedColor : deselectedColor);
 
         if(circular)
         {
@@ -156,9 +190,9 @@ public abstract class Button
         this.circular = circular;
     }
 
-    public void setHoverText(String hoverText)
+    public void setCanBeDragged(boolean canBeDragged)
     {
-        this.hoverText = hoverText;
+        this.canBeDragged = canBeDragged;
     }
 
     public void setHoverTextLeftSided(boolean hoverTextLeftSided)

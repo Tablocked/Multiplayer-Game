@@ -31,6 +31,7 @@ public class CreateScreen implements GameState
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private ArrayList<Platform> platforms;
     private boolean platformMode = false;
+    private ImageButton[] moveVertexButtons;
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
@@ -92,6 +93,7 @@ public class CreateScreen implements GameState
     {
         Point2D worldMouse = getWorldMouse();
         Point2D screenMouse = Input.getMousePosition();
+        boolean platformsAreClickable = !paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null;
         double[] hoveredObjectXValues = null;
         double[] hoveredObjectYValues = null;
         double[] selectedObjectXValues = null;
@@ -136,7 +138,7 @@ public class CreateScreen implements GameState
 
             boolean beingHoveredByMouse = polygon.contains(screenMouse);
 
-            if(!paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null && hoveredObjectXValues == null)
+            if(platformsAreClickable)
                 if(beingHoveredByMouse)
                 {
                     if(Input.MOUSE_LEFT.wasJustActivated())
@@ -146,10 +148,28 @@ public class CreateScreen implements GameState
                     {
                         objectBeingClicked = null;
 
-                        selectedObject = platform == selectedObject ? null : platform;
+                        if(selectedObject == platform)
+                        {
+                            moveVertexButtons = null;
+                            selectedObject = null;
+                        }
+                        else
+                        {
+                            ImageButton[] newVertexButtons = new ImageButton[vertices.length];
 
-                        hoveredObjectXValues = selectedObjectXValues;
-                        hoveredObjectYValues = selectedObjectYValues;
+                            for(int i = 0; i < newVertexButtons.length; i++)
+                            {
+                                ImageButton moveVertexButton = new ImageButton(xValues[i], yValues[i], Main.getTexture("moveVertexButton"), () -> {});
+
+                                moveVertexButton.setCircular(true);
+                                moveVertexButton.setCanBeDragged(true);
+
+                                newVertexButtons[i] = moveVertexButton;
+                            }
+
+                            moveVertexButtons = newVertexButtons;
+                            selectedObject = platform;
+                        }
                     }
 
                     if(platform != selectedObject)
@@ -181,6 +201,10 @@ public class CreateScreen implements GameState
         {
             gc.setStroke(Color.LIGHTGREEN);
             gc.strokePolygon(selectedObjectXValues, selectedObjectYValues, selectedObjectXValues.length);
+
+            if(platformsAreClickable)
+                for(ImageButton moveVertexButton : moveVertexButtons)
+                    moveVertexButton.render(gc);
         }
 
         if(paused)
@@ -252,7 +276,7 @@ public class CreateScreen implements GameState
                 offsetDuringDragStart = offset;
             }
 
-            if(Input.MOUSE_MIDDLE.isActive())
+            if(Input.MOUSE_MIDDLE.isActive() && mousePositionDuringDragStart != null)
                 offset = offsetDuringDragStart.subtract(mousePositionDuringDragStart.subtract(screenMouse));
 
             if(Input.MOUSE_RIGHT.wasJustActivated())
