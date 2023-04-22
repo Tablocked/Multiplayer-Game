@@ -25,13 +25,12 @@ public class CreateScreen implements GameState
     private Point2D offsetDuringDragStart;
     private Point2D objectPlacementStart;
     private Platform objectBeingClicked;
-    private Platform selectedObject;
+    private List<Platform> selectedObjects = new ArrayList<>();
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private ArrayList<Platform> platforms;
     private boolean platformMode = false;
-    private ImageButton[] moveVertexButtons;
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
@@ -88,6 +87,28 @@ public class CreateScreen implements GameState
         return worldPoint.multiply(-scale).add(offset);
     }
 
+    private double[] getPlatformXValues(Platform platform)
+    {
+        Vector2[] vertices = platform.getVertices();
+        double[] xValues = new double[vertices.length];
+
+        for(int i = 0; i < vertices.length; i++)
+            xValues[i] = (vertices[i].x * scale) + offset.getX();
+
+        return xValues;
+    }
+
+    private double[] getPlatformYValues(Platform platform)
+    {
+        Vector2[] vertices = platform.getVertices();
+        double[] yValues = new double[vertices.length];
+
+        for(int i = 0; i < vertices.length; i++)
+            yValues[i] = (vertices[i].y * -scale) + offset.getY();
+
+        return yValues;
+    }
+
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
@@ -96,8 +117,6 @@ public class CreateScreen implements GameState
         boolean platformsAreClickable = !paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null;
         double[] hoveredObjectXValues = null;
         double[] hoveredObjectYValues = null;
-        double[] selectedObjectXValues = null;
-        double[] selectedObjectYValues = null;
         int selectedObjectIndex = 0;
         Platform[] orderedPlatforms = new Platform[platforms.size()];
 
@@ -110,31 +129,22 @@ public class CreateScreen implements GameState
         else if(Input.UI_BACK.wasJustActivated() && paused)
             paused = false;
 
-        gc.setLineWidth(10);
-
-        for(int i = 0; i < platforms.size(); i++)
-            if(selectedObject == platforms.get(i))
-                selectedObjectIndex = i;
+        if(selectedObjects.size() != 0)
+            for(int i = 0; i < platforms.size(); i++)
+                if(selectedObjects.get(selectedObjects.size() - 1) == platforms.get(i))
+                    selectedObjectIndex = i;
 
         for(int i = 0; i < platforms.size(); i++)
             orderedPlatforms[i] = platforms.get((i + selectedObjectIndex) % platforms.size());
 
         for(Platform platform : orderedPlatforms)
         {
-            Vector2[] vertices = platform.getVertices();
-            double[] xValues = new double[vertices.length];
-            double[] yValues = new double[vertices.length];
+            double[] xValues = getPlatformXValues(platform);
+            double[] yValues = getPlatformYValues(platform);
             Polygon polygon = new Polygon();
 
-            for(int i = 0; i < vertices.length; i++)
-            {
-                Point2D screenPoint = getScreenPoint(new Point2D(-vertices[i].x, vertices[i].y));
-
-                xValues[i] = screenPoint.getX();
-                yValues[i] = screenPoint.getY();
-
+            for(int i = 0; i < xValues.length; i++)
                 polygon.getPoints().addAll(xValues[i], yValues[i]);
-            }
 
             boolean beingHoveredByMouse = polygon.contains(screenMouse);
 
@@ -148,31 +158,21 @@ public class CreateScreen implements GameState
                     {
                         objectBeingClicked = null;
 
-                        if(selectedObject == platform)
-                        {
-                            moveVertexButtons = null;
-                            selectedObject = null;
-                        }
+                        if(selectedObjects.contains(platform))
+                            selectedObjects.remove(platform);
                         else
+                            selectedObjects.add(platform);
+
+                        if(!Input.isShiftPressed() && selectedObjects.size() > 1)
                         {
-                            ImageButton[] newVertexButtons = new ImageButton[vertices.length];
+                            selectedObjects.removeIf((platform1) -> !platform1.equals(platform));
 
-                            for(int i = 0; i < newVertexButtons.length; i++)
-                            {
-                                ImageButton moveVertexButton = new ImageButton(xValues[i], yValues[i], Main.getTexture("moveVertexButton"), () -> {});
-
-                                moveVertexButton.setCircular(true);
-                                moveVertexButton.setCanBeDragged(true);
-
-                                newVertexButtons[i] = moveVertexButton;
-                            }
-
-                            moveVertexButtons = newVertexButtons;
-                            selectedObject = platform;
+                            if(!selectedObjects.contains(platform))
+                                selectedObjects.add(platform);
                         }
                     }
 
-                    if(platform != selectedObject)
+                    if(!selectedObjects.contains(platform))
                     {
                         hoveredObjectXValues = xValues;
                         hoveredObjectYValues = yValues;
@@ -181,15 +181,11 @@ public class CreateScreen implements GameState
                 else if(objectBeingClicked == platform)
                     objectBeingClicked = null;
 
-            if(platform == selectedObject)
-            {
-                selectedObjectXValues = xValues;
-                selectedObjectYValues = yValues;
-            }
-
             gc.setFill(Color.BLACK);
-            gc.fillPolygon(xValues, yValues, vertices.length);
+            gc.fillPolygon(xValues, yValues, xValues.length);
         }
+
+        gc.setLineWidth(10);
 
         if(hoveredObjectXValues != null)
         {
@@ -197,15 +193,10 @@ public class CreateScreen implements GameState
             gc.strokePolygon(hoveredObjectXValues, hoveredObjectYValues, hoveredObjectXValues.length);
         }
 
-        if(selectedObjectXValues != null)
-        {
-            gc.setStroke(Color.LIGHTGREEN);
-            gc.strokePolygon(selectedObjectXValues, selectedObjectYValues, selectedObjectXValues.length);
+        gc.setStroke(Color.LIGHTGREEN);
 
-            if(platformsAreClickable)
-                for(ImageButton moveVertexButton : moveVertexButtons)
-                    moveVertexButton.render(gc);
-        }
+        for(Platform selectedObject : selectedObjects)
+            gc.strokePolygon(getPlatformXValues(selectedObject), getPlatformYValues(selectedObject), getPlatformXValues(selectedObject).length);
 
         if(paused)
             objectPlacementStart = null;

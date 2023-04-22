@@ -33,12 +33,12 @@ public enum Input
     UI_BACK("nintendoB", "playstationCircle", "keyboardEscape", "mouseRight"),
     UI_PAGE_LEFT("nintendoLeftButton", "playstationLeftButton", "keyboardQ"),
     UI_PAGE_RIGHT("nintendoRightButton", "playstationRightButton", "keyboardE");
-
     private static final ControllerManager controllers = new ControllerManager();
     private static Point2D mousePosition = new Point2D(-1, -1);
     private static boolean usingMouseControls = true;
     private static boolean mouseHidden = false;
     private static final List<KeyCode> keysPressed = new ArrayList<>();
+    private static boolean shiftPressed = false;
     private static final List<MouseButton> mouseButtonsPressed = new ArrayList<>();
     private static Scene scene;
     private double value;
@@ -97,9 +97,16 @@ public enum Input
         {
             if(!keysPressed.contains(keyEvent.getCode()))
                 keysPressed.add(keyEvent.getCode());
+
+            shiftPressed = keyEvent.isShiftDown();
         });
 
-        scene.setOnKeyReleased(keyEvent -> keysPressed.remove(keyEvent.getCode()));
+        scene.setOnKeyReleased(keyEvent ->
+        {
+            keysPressed.remove(keyEvent.getCode());
+
+            shiftPressed = keyEvent.isShiftDown();
+        });
 
         controllers.initSDLGamepad();
     }
@@ -180,16 +187,21 @@ public enum Input
             input.activePreviousFrame = input.isActive();
     }
 
-    public static boolean isUsingMouseControls()
-    {
-        return usingMouseControls;
-    }
-
     public static Point2D getMousePosition()
     {
         double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
 
         return new Point2D(mousePosition.getX() / scaleFactor, mousePosition.getY() / scaleFactor);
+    }
+
+    public static boolean isUsingMouseControls()
+    {
+        return usingMouseControls;
+    }
+
+    public static boolean isShiftPressed()
+    {
+        return shiftPressed;
     }
 
     public static void setOnKeyTypedHandler(EventHandler<KeyEvent> onKeyTypedHandler)
