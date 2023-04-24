@@ -25,12 +25,13 @@ public class CreateScreen implements GameState
     private Point2D offsetDuringDragStart;
     private Point2D objectPlacementStart;
     private Platform objectBeingClicked;
-    private final List<Platform> selectedObjects = new ArrayList<>();
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
-    private List<Platform> platforms;
     private boolean platformMode = false;
+    private List<Platform> platforms;
+    private Point2D mousePositionDuringObjectDragStart;
+    private final List<Platform> selectedObjects = new ArrayList<>();
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
@@ -115,9 +116,7 @@ public class CreateScreen implements GameState
         Point2D worldMouse = getWorldMouse();
         Point2D screenMouse = Input.getMousePosition();
         boolean platformsAreClickable = !paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null;
-        Platform hoveredObject = null;
-        int selectedObjectIndex = 0;
-        Platform[] orderedPlatforms = new Platform[platforms.size()];
+        List<Platform> hoveredObjects = new ArrayList<>();
 
         if(Input.PAUSE.wasJustActivated())
         {
@@ -128,15 +127,7 @@ public class CreateScreen implements GameState
         else if(Input.UI_BACK.wasJustActivated() && paused)
             paused = false;
 
-        if(selectedObjects.size() != 0)
-            for(int i = 0; i < platforms.size(); i++)
-                if(selectedObjects.get(selectedObjects.size() - 1) == platforms.get(i))
-                    selectedObjectIndex = i;
-
-        for(int i = 0; i < platforms.size(); i++)
-            orderedPlatforms[i] = platforms.get((i + selectedObjectIndex) % platforms.size());
-
-        for(Platform platform : orderedPlatforms)
+        for(Platform platform : platforms)
         {
             double[] xValues = getPlatformXValues(platform);
             double[] yValues = getPlatformYValues(platform);
@@ -148,15 +139,17 @@ public class CreateScreen implements GameState
             boolean beingHoveredByMouse = polygon.contains(screenMouse);
 
             if(platformsAreClickable)
+            {
                 if(beingHoveredByMouse)
                 {
                     if(Input.MOUSE_LEFT.wasJustActivated())
+                    {
                         objectBeingClicked = platform;
+                        mousePositionDuringObjectDragStart = worldMouse;
+                    }
 
                     if(platform == objectBeingClicked && !Input.MOUSE_LEFT.isActive())
                     {
-                        objectBeingClicked = null;
-
                         if(!Input.isShiftPressed())
                         {
                             boolean shouldObjectBeSelected = selectedObjects.size() > 1 || !selectedObjects.contains(platform);
@@ -166,7 +159,8 @@ public class CreateScreen implements GameState
                             if(shouldObjectBeSelected)
                                 selectedObjects.add(platform);
 
-                            hoveredObject = platform;
+                            if(hoveredObjects.size() == 0)
+                                hoveredObjects.add(platform);
                         }
                         else
                         {
@@ -182,31 +176,51 @@ public class CreateScreen implements GameState
                         for(int i = 0; i < platforms.size(); i++)
                             newPlatforms.add(platforms.get((startingIndex + i) % platforms.size()));
 
-                        //platforms = newPlatforms;
+                        platforms = newPlatforms;
                     }
                     else
-                        hoveredObject = platform;
+                        hoveredObjects.add(platform);
                 }
-                else if(objectBeingClicked == platform)
+
+                if(Input.MOUSE_LEFT.isActive())
+                {
+                    if(platform == objectBeingClicked && mousePositionDuringObjectDragStart != null)
+                    {
+                        Point2D translation = mousePositionDuringObjectDragStart.subtract(worldMouse);
+
+                        platform.translate(new Vector2(translation.getX(), -translation.getY()));
+
+                        mousePositionDuringObjectDragStart = worldMouse;
+                    }
+                }
+                else
+                {
                     objectBeingClicked = null;
+                    mousePositionDuringObjectDragStart = null;
+                }
+            }
+            else
+                mousePositionDuringObjectDragStart = null;
 
             gc.setFill(Color.BLACK);
             gc.fillPolygon(xValues, yValues, xValues.length);
         }
 
+        Platform lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+
         gc.setLineWidth(10);
 
-        if(hoveredObject != null && !selectedObjects.contains(hoveredObject))
+        if(lastHoveredObject != null && !selectedObjects.contains(lastHoveredObject))
         {
             gc.setStroke(Color.RED.desaturate().desaturate());
-            gc.strokePolygon(getPlatformXValues(hoveredObject), getPlatformYValues(hoveredObject), getPlatformXValues(hoveredObject).length);
+            gc.strokePolygon(getPlatformXValues(lastHoveredObject), getPlatformYValues(lastHoveredObject), getPlatformXValues(lastHoveredObject).length);
         }
 
         gc.setStroke(Color.LIGHTGREEN);
 
         for(Platform selectedObject : selectedObjects)
         {
-            if(hoveredObject == selectedObject)
+            if(lastHoveredObject == selectedObject)
                 gc.setLineDashes(20);
 
             gc.strokePolygon(getPlatformXValues(selectedObject), getPlatformYValues(selectedObject), getPlatformXValues(selectedObject).length);
