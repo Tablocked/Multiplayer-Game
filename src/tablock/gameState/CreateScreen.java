@@ -31,6 +31,8 @@ public class CreateScreen implements GameState
     private boolean platformMode = false;
     private List<Platform> platforms;
     private Point2D mousePositionDuringObjectDragStart;
+    private Vector2 objectPositionDuringDragStart;
+    private boolean objectWasJustSelected = false;
     private final List<Platform> selectedObjects = new ArrayList<>();
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
@@ -136,71 +138,76 @@ public class CreateScreen implements GameState
             for(int i = 0; i < xValues.length; i++)
                 polygon.getPoints().addAll(xValues[i], yValues[i]);
 
-            boolean beingHoveredByMouse = polygon.contains(screenMouse);
+            if(platformsAreClickable && polygon.contains(screenMouse))
+            {
+                if(Input.MOUSE_LEFT.wasJustActivated())
+                {
+                    objectBeingClicked = platform;
+                    mousePositionDuringObjectDragStart = worldMouse;
+                    objectPositionDuringDragStart = platform.getTransform().getTranslation();
+                }
+
+                hoveredObjects.add(platform);
+            }
+        }
+
+        if(objectBeingClicked != null)
+        {
+            if(!selectedObjects.contains(objectBeingClicked))
+                objectWasJustSelected = true;
+
+            if(!Input.isShiftPressed())
+            {
+                selectedObjects.clear();
+                selectedObjects.add(objectBeingClicked);
+
+                if(hoveredObjects.size() == 0)
+                    hoveredObjects.add(objectBeingClicked);
+            }
+            else if(!selectedObjects.contains(objectBeingClicked))
+                selectedObjects.add(objectBeingClicked);
+
+            List<Platform> newPlatforms = new ArrayList<>();
+            int startingIndex = platforms.indexOf(objectBeingClicked);
+
+            for(int i = 0; i < platforms.size(); i++)
+                newPlatforms.add(platforms.get((startingIndex + i) % platforms.size()));
+
+            platforms = newPlatforms;
 
             if(platformsAreClickable)
             {
-                if(beingHoveredByMouse)
+                if(mousePositionDuringObjectDragStart != null)
                 {
-                    if(Input.MOUSE_LEFT.wasJustActivated())
-                    {
-                        objectBeingClicked = platform;
-                        mousePositionDuringObjectDragStart = worldMouse;
-                    }
-
-                    if(platform == objectBeingClicked && !Input.MOUSE_LEFT.isActive())
-                    {
-                        if(!Input.isShiftPressed())
-                        {
-                            boolean shouldObjectBeSelected = selectedObjects.size() > 1 || !selectedObjects.contains(platform);
-
-                            selectedObjects.clear();
-
-                            if(shouldObjectBeSelected)
-                                selectedObjects.add(platform);
-
-                            if(hoveredObjects.size() == 0)
-                                hoveredObjects.add(platform);
-                        }
-                        else
-                        {
-                            if(selectedObjects.contains(platform))
-                                selectedObjects.remove(platform);
-                            else
-                                selectedObjects.add(platform);
-                        }
-
-                        List<Platform> newPlatforms = new ArrayList<>();
-                        int startingIndex = platforms.indexOf(platform);
-
-                        for(int i = 0; i < platforms.size(); i++)
-                            newPlatforms.add(platforms.get((startingIndex + i) % platforms.size()));
-
-                        platforms = newPlatforms;
-                    }
-                    else
-                        hoveredObjects.add(platform);
-                }
-
-                if(Input.MOUSE_LEFT.isActive())
-                {
-                    if(platform == objectBeingClicked && mousePositionDuringObjectDragStart != null)
+                    if(Input.MOUSE_LEFT.isActive())
                     {
                         Point2D translation = mousePositionDuringObjectDragStart.subtract(worldMouse);
 
-                        platform.translate(new Vector2(translation.getX(), -translation.getY()));
+                        for(Platform selectedObject : selectedObjects)
+                            selectedObject.translate(new Vector2(translation.getX(), -translation.getY()));
 
                         mousePositionDuringObjectDragStart = worldMouse;
                     }
-                }
-                else
-                {
-                    objectBeingClicked = null;
-                    mousePositionDuringObjectDragStart = null;
+                    else
+                    {
+                        if(!objectWasJustSelected && objectPositionDuringDragStart.distance(objectBeingClicked.getTransform().getTranslation()) == 0)
+                            selectedObjects.remove(objectBeingClicked);
+
+                        objectWasJustSelected = false;
+
+                        objectBeingClicked = null;
+                        mousePositionDuringObjectDragStart = null;
+                    }
                 }
             }
             else
                 mousePositionDuringObjectDragStart = null;
+        }
+
+        for(Platform platform : platforms)
+        {
+            double[] xValues = getPlatformXValues(platform);
+            double[] yValues = getPlatformYValues(platform);
 
             gc.setFill(Color.BLACK);
             gc.fillPolygon(xValues, yValues, xValues.length);
