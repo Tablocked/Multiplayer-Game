@@ -13,8 +13,6 @@ import tablock.userInterface.ImageButton;
 import tablock.userInterface.TextButton;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class CreateScreen implements GameState
@@ -24,18 +22,18 @@ public class CreateScreen implements GameState
     private Point2D mousePositionDuringDragStart;
     private Point2D offsetDuringDragStart;
     private Point2D objectPlacementStart;
-    private Platform objectBeingClicked;
+    private LevelPlatform objectBeingClicked;
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private boolean platformMode = false;
-    private List<Platform> platforms;
+    private List<LevelPlatform> platforms = new ArrayList<>();
     private Point2D mousePositionDuringObjectDragStart;
-    private Vector2 objectPositionDuringDragStart;
     private boolean objectWasJustSelected = false;
-    private final List<Platform> selectedObjects = new ArrayList<>();
-    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, 0, 600)), "Play from start");
-    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, platforms, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
+    private boolean objectWasNeverMoved = true;
+    private final List<LevelPlatform> selectedObjects = new ArrayList<>();
+    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, null, 0, 600)), "Play from start");
+    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, null, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
     private final CircularButtonStrip objectButtons = new CircularButtonStrip(platformButton);
 
@@ -59,7 +57,7 @@ public class CreateScreen implements GameState
 
     public CreateScreen(Level level)
     {
-        this.platforms = new ArrayList<>(List.of(level.getPlatforms()));
+        //this.platforms = new ArrayList<>(List.of(level.getPlatforms()));
 
         Input.setOnScrollHandler(scrollEvent ->
         {
@@ -118,7 +116,7 @@ public class CreateScreen implements GameState
         Point2D worldMouse = getWorldMouse();
         Point2D screenMouse = Input.getMousePosition();
         boolean platformsAreClickable = !paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null;
-        List<Platform> hoveredObjects = new ArrayList<>();
+        List<LevelPlatform> hoveredObjects = new ArrayList<>();
 
         if(Input.PAUSE.wasJustActivated())
         {
@@ -129,175 +127,8 @@ public class CreateScreen implements GameState
         else if(Input.UI_BACK.wasJustActivated() && paused)
             paused = false;
 
-        for(Platform platform : platforms)
+        if(!paused)
         {
-            double[] xValues = getPlatformXValues(platform);
-            double[] yValues = getPlatformYValues(platform);
-            Polygon polygon = new Polygon();
-
-            for(int i = 0; i < xValues.length; i++)
-                polygon.getPoints().addAll(xValues[i], yValues[i]);
-
-            if(platformsAreClickable && polygon.contains(screenMouse))
-            {
-                if(Input.MOUSE_LEFT.wasJustActivated())
-                {
-                    objectBeingClicked = platform;
-                    mousePositionDuringObjectDragStart = worldMouse;
-                    objectPositionDuringDragStart = platform.getTransform().getTranslation();
-                }
-
-                hoveredObjects.add(platform);
-            }
-        }
-
-        if(objectBeingClicked != null)
-        {
-            if(!selectedObjects.contains(objectBeingClicked))
-                objectWasJustSelected = true;
-
-            if(!Input.isShiftPressed())
-            {
-                selectedObjects.clear();
-                selectedObjects.add(objectBeingClicked);
-
-                if(hoveredObjects.size() == 0)
-                    hoveredObjects.add(objectBeingClicked);
-            }
-            else if(!selectedObjects.contains(objectBeingClicked))
-                selectedObjects.add(objectBeingClicked);
-
-            List<Platform> newPlatforms = new ArrayList<>();
-            int startingIndex = platforms.indexOf(objectBeingClicked);
-
-            for(int i = 0; i < platforms.size(); i++)
-                newPlatforms.add(platforms.get((startingIndex + i) % platforms.size()));
-
-            platforms = newPlatforms;
-
-            if(platformsAreClickable)
-            {
-                if(mousePositionDuringObjectDragStart != null)
-                {
-                    if(Input.MOUSE_LEFT.isActive())
-                    {
-                        Point2D translation = mousePositionDuringObjectDragStart.subtract(worldMouse);
-
-                        for(Platform selectedObject : selectedObjects)
-                            selectedObject.translate(new Vector2(translation.getX(), -translation.getY()));
-
-                        mousePositionDuringObjectDragStart = worldMouse;
-                    }
-                    else
-                    {
-                        if(!objectWasJustSelected && objectPositionDuringDragStart.distance(objectBeingClicked.getTransform().getTranslation()) == 0)
-                            selectedObjects.remove(objectBeingClicked);
-
-                        objectWasJustSelected = false;
-
-                        objectBeingClicked = null;
-                        mousePositionDuringObjectDragStart = null;
-                    }
-                }
-            }
-            else
-                mousePositionDuringObjectDragStart = null;
-        }
-
-        for(Platform platform : platforms)
-        {
-            double[] xValues = getPlatformXValues(platform);
-            double[] yValues = getPlatformYValues(platform);
-
-            gc.setFill(Color.BLACK);
-            gc.fillPolygon(xValues, yValues, xValues.length);
-        }
-
-        Platform lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
-
-        gc.setLineWidth(10);
-
-        if(lastHoveredObject != null && !selectedObjects.contains(lastHoveredObject))
-        {
-            gc.setStroke(Color.RED.desaturate().desaturate());
-            gc.strokePolygon(getPlatformXValues(lastHoveredObject), getPlatformYValues(lastHoveredObject), getPlatformXValues(lastHoveredObject).length);
-        }
-
-        gc.setStroke(Color.LIGHTGREEN);
-
-        for(Platform selectedObject : selectedObjects)
-        {
-            if(lastHoveredObject == selectedObject)
-                gc.setLineDashes(20);
-
-            gc.strokePolygon(getPlatformXValues(selectedObject), getPlatformYValues(selectedObject), getPlatformXValues(selectedObject).length);
-
-            gc.setLineDashes(0);
-        }
-
-        if(paused)
-            objectPlacementStart = null;
-        else
-        {
-            if(platformMode && currentInterface.areNoButtonsSelected())
-            {
-                if(Input.MOUSE_LEFT.wasJustActivated() && objectBeingClicked == null)
-                    objectPlacementStart = worldMouse;
-
-                if(Input.MOUSE_LEFT.isActive() && objectPlacementStart != null)
-                {
-                    Point2D point1 = getScreenPoint(objectPlacementStart);
-                    double[] xValues = {point1.getX(), point1.getX(), screenMouse.getX(), screenMouse.getX()};
-                    double[] yValues = {point1.getY(), screenMouse.getY(), screenMouse.getY(), point1.getY()};
-
-                    gc.setStroke(Color.GOLD);
-                    gc.setLineWidth(10);
-                    gc.setLineDashes(20);
-                    gc.strokePolygon(xValues, yValues, 4);
-                    gc.setLineDashes(0);
-                }
-                else if(objectPlacementStart != null && objectPlacementStart.distance(worldMouse) != 0)
-                {
-                    Point2D midpoint = objectPlacementStart.add(worldMouse).multiply(0.5);
-                    Point2D point1 = midpoint.subtract(objectPlacementStart);
-                    Point2D point2 = midpoint.subtract(worldMouse);
-                    Vertex[] vertices = {new Vertex(point1.getX(), point1.getY()), new Vertex(point1.getX(), point2.getY()), new Vertex(point2.getX(), point2.getY()), new Vertex(point2.getX(), point1.getY())};
-                    Platform platform;
-                    boolean coincidentVertices = false;
-
-                    for(int i = 0; i < vertices.length; i++)
-                        for(int j = 0; j < vertices.length; j++)
-                            if(i != j && vertices[i].equals(vertices[j]))
-                            {
-                                coincidentVertices = true;
-
-                                break;
-                            }
-
-                    if(!coincidentVertices)
-                    {
-                        try
-                        {
-                            platform = new Platform(vertices);
-                        }
-                        catch(IllegalArgumentException exception)
-                        {
-                            Collections.reverse(Arrays.asList(vertices));
-
-                            platform = new Platform(vertices);
-                        }
-
-                        Point2D platformPosition = worldMouse.subtract(worldMouse.subtract(midpoint));
-
-                        platform.translate(-platformPosition.getX(), platformPosition.getY());
-
-                        platforms.add(platform);
-                    }
-
-                    objectPlacementStart = null;
-                }
-            }
-
             if(Input.MOUSE_MIDDLE.wasJustActivated())
             {
                 mousePositionDuringDragStart = screenMouse;
@@ -327,6 +158,174 @@ public class CreateScreen implements GameState
                     mainInterfaceButtons.deselectAllButtons();
 
                     currentInterface = mainInterfaceButtons;
+                }
+            }
+        }
+
+        for(LevelPlatform platform : platforms)
+        {
+            platform.transformScreenValues(offset, scale);
+
+            double[] xValues = platform.getScreenXValues();
+            double[] yValues = platform.getScreenYValues();
+            Polygon polygon = new Polygon();
+
+            for(int i = 0; i < xValues.length; i++)
+                polygon.getPoints().addAll(xValues[i], yValues[i]);
+
+            if(platformsAreClickable && polygon.contains(screenMouse))
+            {
+                if(Input.MOUSE_LEFT.wasJustActivated())
+                {
+                    objectBeingClicked = platform;
+                    mousePositionDuringObjectDragStart = worldMouse;
+                }
+
+                hoveredObjects.add(platform);
+            }
+        }
+
+        if(objectBeingClicked != null && mousePositionDuringObjectDragStart != null)
+        {
+            if(!selectedObjects.contains(objectBeingClicked))
+                objectWasJustSelected = true;
+
+            if(mousePositionDuringObjectDragStart.distance(worldMouse) != 0)
+                objectWasNeverMoved = false;
+
+            if(!Input.isShiftPressed())
+            {
+                selectedObjects.clear();
+                selectedObjects.add(objectBeingClicked);
+
+                if(hoveredObjects.size() != 1)
+                    hoveredObjects.remove(objectBeingClicked);
+            }
+            else if(!selectedObjects.contains(objectBeingClicked))
+                selectedObjects.add(objectBeingClicked);
+
+            if(!(Input.MOUSE_LEFT.isActive() && Input.isShiftPressed()) && objectWasNeverMoved)
+            {
+                List<LevelPlatform> newPlatforms = new ArrayList<>();
+                int startingIndex = platforms.indexOf(objectBeingClicked);
+
+                for(int i = 0; i < platforms.size(); i++)
+                    newPlatforms.add(platforms.get((startingIndex + i) % platforms.size()));
+
+                platforms = newPlatforms;
+            }
+
+            if(platformsAreClickable)
+            {
+                if(Input.MOUSE_LEFT.isActive())
+                {
+                    Point2D translation = mousePositionDuringObjectDragStart.subtract(worldMouse);
+
+                    for(LevelPlatform selectedObject : selectedObjects)
+                        selectedObject.translate(translation);
+
+                    mousePositionDuringObjectDragStart = worldMouse;
+                }
+                else
+                {
+                    if(!objectWasJustSelected && objectWasNeverMoved)
+                        selectedObjects.remove(objectBeingClicked);
+
+                    objectWasJustSelected = false;
+                    objectWasNeverMoved = true;
+                    objectBeingClicked = null;
+                    mousePositionDuringObjectDragStart = null;
+                }
+            }
+            else
+                mousePositionDuringObjectDragStart = null;
+        }
+
+        for(LevelPlatform platform : platforms)
+            platform.render(gc);
+
+        LevelPlatform lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+
+        gc.setLineWidth(10);
+
+        if(lastHoveredObject != null && !selectedObjects.contains(lastHoveredObject))
+        {
+            gc.setStroke(Color.RED.desaturate().desaturate());
+            gc.strokePolygon(lastHoveredObject.getScreenXValues(), lastHoveredObject.getScreenYValues(), lastHoveredObject.getScreenXValues().length);
+        }
+
+        gc.setStroke(Color.LIGHTGREEN);
+
+        for(LevelPlatform selectedObject : selectedObjects)
+        {
+            if(lastHoveredObject == selectedObject)
+                gc.setLineDashes(20);
+
+            gc.strokePolygon(selectedObject.getScreenXValues(), selectedObject.getScreenYValues(), selectedObject.getScreenXValues().length);
+
+            gc.setLineDashes(0);
+        }
+
+        if(paused)
+            objectPlacementStart = null;
+        else
+        {
+            if(platformMode && currentInterface.areNoButtonsSelected())
+            {
+                if(Input.MOUSE_LEFT.wasJustActivated() && objectBeingClicked == null)
+                    objectPlacementStart = worldMouse;
+
+                if(Input.MOUSE_LEFT.isActive() && objectPlacementStart != null)
+                {
+                    Point2D point1 = getScreenPoint(objectPlacementStart);
+                    double[] xValues = {point1.getX(), point1.getX(), screenMouse.getX(), screenMouse.getX()};
+                    double[] yValues = {point1.getY(), screenMouse.getY(), screenMouse.getY(), point1.getY()};
+
+                    gc.setStroke(Color.GOLD);
+                    gc.setLineWidth(10);
+                    gc.setLineDashes(20);
+                    gc.strokePolygon(xValues, yValues, 4);
+                    gc.setLineDashes(0);
+                }
+                else if(objectPlacementStart != null && objectPlacementStart.distance(worldMouse) != 0)
+                {
+                    //Point2D midpoint = objectPlacementStart.add(worldMouse).multiply(0.5);
+                    Point2D point1 = objectPlacementStart.multiply(-1);
+                    Point2D point2 = worldMouse.multiply(-1);
+                    Vertex[] vertices = {new Vertex(point1.getX(), point1.getY()), new Vertex(point1.getX(), point2.getY()), new Vertex(point2.getX(), point2.getY()), new Vertex(point2.getX(), point1.getY())};
+                    LevelPlatform platform = new LevelPlatform(vertices);
+                    boolean coincidentVertices = false;
+
+                    for(int i = 0; i < vertices.length; i++)
+                        for(int j = 0; j < vertices.length; j++)
+                            if(i != j && vertices[i].equals(vertices[j]))
+                            {
+                                coincidentVertices = true;
+
+                                break;
+                            }
+
+                    if(!coincidentVertices)
+                    {
+//                        try
+//                        {
+//                            platform = new Platform(vertices);
+//                        }
+//                        catch(IllegalArgumentException exception)
+//                        {
+//                            Collections.reverse(Arrays.asList(vertices));
+//
+//                            platform = new Platform(vertices);
+//                        }
+
+                        //Point2D platformPosition = worldMouse.subtract(worldMouse.subtract(midpoint));
+
+                        //platform.translate(-platformPosition.getX(), platformPosition.getY());
+
+                        platforms.add(platform);
+                    }
+
+                    objectPlacementStart = null;
                 }
             }
         }

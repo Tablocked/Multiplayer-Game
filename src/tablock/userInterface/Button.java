@@ -23,9 +23,6 @@ public abstract class Button
     private boolean selected = false;
     private boolean forceHighlighted = false;
     private boolean circular = false;
-    private boolean canBeDragged = false;
-    private Point2D mousePositionDuringDragStart;
-    private Point2D positionDuringDragStart;
     private boolean hoverTextLeftSided = false;
     private Color selectedColor = Color.GREEN;
     private Color deselectedColor = Color.RED;
@@ -40,10 +37,14 @@ public abstract class Button
         this.activationHandler = activationHandler;
     }
 
-    public void checkForActivation()
+    public void render(GraphicsContext gc)
     {
+        if(hidden)
+            return;
+
         Rectangle2D rectangularShape = new Rectangle2D(x - (width / 2), y - (height / 2), width, height);
         double diagonal = Math.sqrt(2 * Math.pow(width, 2));
+        double offset = diagonal / 2;
         Circle circularShape = new Circle(x, y, diagonal / 2);
         Point2D mousePosition = Input.getMousePosition();
 
@@ -53,40 +54,19 @@ public abstract class Button
             {
                 selected = true;
 
-                if(canBeDragged && Input.MOUSE_LEFT.wasJustActivated())
-                {
-                    mousePositionDuringDragStart = mousePosition;
-                    positionDuringDragStart = new Point2D(x, y);
-                }
-                else
-                {
-                    if(Input.MOUSE_LEFT.wasJustActivated())
-                        beingClicked = true;
+                if(Input.MOUSE_LEFT.wasJustActivated())
+                    beingClicked = true;
 
-                    if(beingClicked && !Input.MOUSE_LEFT.isActive())
-                    {
-                        beingClicked = false;
+                if(beingClicked && !Input.MOUSE_LEFT.isActive())
+                {
+                    beingClicked = false;
 
-                        activationHandler.onActivation();
-                    }
+                    activationHandler.onActivation();
                 }
             }
             else
             {
                 selected = beingClicked = false;
-            }
-
-            if(canBeDragged)
-            {
-                if(Input.MOUSE_LEFT.isActive() && mousePositionDuringDragStart != null)
-                {
-                    Point2D newPosition = positionDuringDragStart.subtract(mousePositionDuringDragStart.subtract(mousePosition));
-
-                    x = newPosition.getX();
-                    y = newPosition.getY();
-                }
-                else if(!Input.MOUSE_LEFT.isActive())
-                    mousePositionDuringDragStart = null;
             }
         }
 
@@ -94,18 +74,6 @@ public abstract class Button
             activationHandler.onActivation();
 
         preventActivation = false;
-    }
-
-    public void render(GraphicsContext gc)
-    {
-        if(hidden)
-            return;
-
-        Rectangle2D rectangularShape = new Rectangle2D(x - (width / 2), y - (height / 2), width, height);
-        double diagonal = Math.sqrt(2 * Math.pow(width, 2));
-        double offset = diagonal / 2;
-
-        checkForActivation();
 
         if(selected && hoverText != null)
         {
@@ -121,7 +89,7 @@ public abstract class Button
             gc.fillText(hoverText, x + offset - xOffset + (hoverTextLeftSided ? -20 : 10), y + (offset / 2));
         }
 
-        gc.setFill(selected || forceHighlighted || mousePositionDuringDragStart != null ? selectedColor : deselectedColor);
+        gc.setFill(selected || forceHighlighted ? selectedColor : deselectedColor);
 
         if(circular)
         {
@@ -188,11 +156,6 @@ public abstract class Button
     public void setCircular(boolean circular)
     {
         this.circular = circular;
-    }
-
-    public void setCanBeDragged(boolean canBeDragged)
-    {
-        this.canBeDragged = canBeDragged;
     }
 
     public void setHoverTextLeftSided(boolean hoverTextLeftSided)
