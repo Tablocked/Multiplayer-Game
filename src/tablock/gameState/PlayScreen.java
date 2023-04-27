@@ -1,9 +1,18 @@
 package tablock.gameState;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import org.dyn4j.dynamics.Body;
+import org.dyn4j.geometry.Convex;
+import org.dyn4j.geometry.Geometry;
+import org.dyn4j.geometry.MassType;
 import org.dyn4j.geometry.Vector2;
-import tablock.core.*;
+import org.dyn4j.geometry.decompose.SweepLine;
+import tablock.core.Input;
+import tablock.core.Level;
+import tablock.core.Platform;
+import tablock.core.Simulation;
 import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
@@ -16,6 +25,7 @@ public class PlayScreen implements GameState
     private boolean paused = false;
     private final Simulation simulation;
     private final CreateScreen createScreen;
+    private final Level level;
 
     private final ButtonStrip buttonStrip = new ButtonStrip
     (
@@ -28,19 +38,56 @@ public class PlayScreen implements GameState
 
     public PlayScreen(Level level)
     {
-        simulation = new Simulation(new PlayerBody(0, 600));
+        simulation = new Simulation(createPlayer(0, 600));
         createScreen = null;
+        this.level = level;
 
-        level.addPlatformsToSimulation(simulation);
+        addObjectsToSimulation();
     }
 
-    public PlayScreen(CreateScreen createScreen, List<Platform> platforms, double startX, double startY)
+    public PlayScreen(CreateScreen createScreen, double startX, double startY)
     {
-        simulation = new Simulation(new PlayerBody(startX, startY));
+        simulation = new Simulation(createPlayer(startX, startY));
         this.createScreen = createScreen;
+        this.level = createScreen.getLevel();
 
-        for(Platform platform : platforms)
-            simulation.addBody(platform);
+        addObjectsToSimulation();
+    }
+
+    private Body createPlayer(double x, double y)
+    {
+        Body player = new Body();
+
+        player.addFixture(Geometry.createRectangle(50, 50));
+        player.translate(x, y);
+        player.setMass(MassType.NORMAL);
+
+        return player;
+    }
+
+    private void addObjectsToSimulation()
+    {
+        SweepLine sweepLine = new SweepLine();
+
+        for(Platform object : level.getObjects())
+        {
+            Body body = new Body();
+            double[] xValues = object.getWorldXValues();
+            double[] yValues = object.getWorldYValues();
+            Vector2[] vertices = new Vector2[xValues.length];
+
+            for(int i = 0; i < xValues.length; i++)
+                vertices[i] = new Vector2(xValues[i], -yValues[i]);
+
+            List<Convex> fixtures = sweepLine.decompose(vertices);
+
+            for(Convex fixture : fixtures)
+                body.addFixture(fixture);
+
+            body.setMass(MassType.INFINITE);
+
+            simulation.addBody(body);
+        }
     }
 
 //    public PlayScreen()
@@ -85,6 +132,10 @@ public class PlayScreen implements GameState
     public void renderNextFrame(GraphicsContext gc)
     {
         double elapsedTime = (System.nanoTime() - frameTime) / 1e9;
+        Vector2[] vertices = simulation.getPlayerVertices();
+        Vector2[] doubleJumpVertices = simulation.getDoubleJumpVertices();
+        double offsetX = -simulation.getPlayerCenter().x + 935;
+        double offsetY = simulation.getPlayerCenter().y + 515;
 
         frameTime = System.nanoTime();
 
@@ -119,46 +170,39 @@ public class PlayScreen implements GameState
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
-        for(SimulationBody body : simulation.getBodies())
+        gc.beginPath();
+
+        if(doubleJumpVertices != null)
         {
-            Vector2[] vertices = body instanceof Platform ? body.getVertices() : simulation.getPlayerVertices();
-            Vector2[] doubleJumpVertices = simulation.getDoubleJumpVertices();
-            boolean shouldDrawDoubleJumpEffect = doubleJumpVertices != null && body instanceof PlayerBody;
-            double cameraX = -simulation.getPlayerCenter().x + 935;
-            double cameraY = simulation.getPlayerCenter().y + 515;
-
-            gc.beginPath();
-
-            if(shouldDrawDoubleJumpEffect)
+            for(int i = 0; i < doubleJumpVertices.length; i++)
             {
-                for(int i = 0; i < doubleJumpVertices.length; i++)
+                Vector2 vertex = doubleJumpVertices[i];
+                double x = vertex.x + offsetX;
+                double y = -vertex.y + offsetY;
+
+                if(i == doubleJumpVertices.length - 2)
                 {
-                    Vector2 vertex = doubleJumpVertices[i];
-                    double x = vertex.x + cameraX;
-                    double y = -vertex.y + cameraY;
+                    Vector2 endVertex = doubleJumpVertices[doubleJumpVertices.length - 1];
 
-                    if(i == doubleJumpVertices.length - 2)
-                    {
-                        Vector2 endVertex = doubleJumpVertices[doubleJumpVertices.length - 1];
-
-                        gc.quadraticCurveTo(x, y, endVertex.x + cameraX, -endVertex.y + cameraY);
-                    }
-                    else
-                    {
-                        gc.lineTo(x, y);
-                    }
+                    gc.quadraticCurveTo(x, y, endVertex.x + offsetX, -endVertex.y + offsetY);
+                }
+                else
+                {
+                    gc.lineTo(x, y);
                 }
             }
-            else
-            {
-                for(Vector2 vertex : vertices)
-                    gc.lineTo(vertex.x + cameraX, -vertex.y + cameraY);
-            }
-
-            gc.setFill(body instanceof Platform ? Color.BLACK : Color.RED);
-            gc.fill();
-            gc.closePath();
         }
+        else
+        {
+            for(Vector2 vertex : vertices)
+                gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
+        }
+
+        gc.setFill(Color.RED);
+        gc.fill();
+        gc.closePath();
+
+        level.render(new Point2D(offsetX, offsetY), 1, gc);
 
         if(paused)
         {

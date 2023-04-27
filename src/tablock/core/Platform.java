@@ -1,19 +1,79 @@
 package tablock.core;
 
-import org.dyn4j.geometry.Geometry;
-import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Vector2;
+import javafx.geometry.Point2D;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
-public class Platform extends SimulationBody
+import java.io.Serial;
+import java.io.Serializable;
+
+public class Platform implements Serializable
 {
-    public Platform(Vertex[] vertices)
+    @Serial
+    private static final long serialVersionUID = 7944900121369452854L;
+    private final int vertexCount;
+    private final double[] worldXValues;
+
+    private final double[] worldYValues;
+    private final double[] screenXValues;
+    private final double[] screenYValues;
+
+    public Platform(Vertex... vertices)
     {
-        Vector2[] vectors = new Vector2[vertices.length];
+        vertexCount = vertices.length;
+        worldXValues = new double[vertexCount];
+        worldYValues = new double[vertexCount];
+        screenXValues = new double[vertexCount];
+        screenYValues = new double[vertexCount];
 
-        for(int i = 0; i < vectors.length; i++)
-            vectors[i] = new Vector2(vertices[i].x(), vertices[i].y());
+        for(int i = 0; i < vertexCount; i++)
+        {
+            worldXValues[i] = vertices[i].x();
+            worldYValues[i] = vertices[i].y();
+        }
+    }
 
-        addFixture(Geometry.createPolygon(vectors));
-        setMass(MassType.INFINITE);
+    public void translate(Point2D point2D)
+    {
+        for(int i = 0; i < vertexCount; i++)
+        {
+            worldXValues[i] += point2D.getX();
+            worldYValues[i] += point2D.getY();
+        }
+    }
+
+    public void transformScreenValues(Point2D offset, double scale)
+    {
+        for(int i = 0; i < vertexCount; i++)
+        {
+            screenXValues[i] = (worldXValues[i] * scale) + offset.getX();
+            screenYValues[i] = (worldYValues[i] * scale) + offset.getY();
+        }
+    }
+
+    public void render(GraphicsContext gc)
+    {
+        gc.setFill(Color.BLACK);
+        gc.fillPolygon(screenXValues, screenYValues, vertexCount);
+    }
+
+    public double[] getWorldXValues()
+    {
+        return worldXValues;
+    }
+
+    public double[] getWorldYValues()
+    {
+        return worldYValues;
+    }
+
+    public double[] getScreenXValues()
+    {
+        return screenXValues;
+    }
+
+    public double[] getScreenYValues()
+    {
+        return screenYValues;
     }
 }

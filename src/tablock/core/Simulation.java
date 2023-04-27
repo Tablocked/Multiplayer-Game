@@ -10,7 +10,7 @@ import org.dyn4j.world.World;
 import org.dyn4j.world.listener.ContactListenerAdapter;
 import org.dyn4j.world.listener.StepListenerAdapter;
 
-public class Simulation extends World<SimulationBody>
+public class Simulation extends World<Body>
 {
 	private Vector2 jumpVector = new Vector2(0,0);
 	private Vector2 movementVector = new Vector2(0, 0);
@@ -20,18 +20,18 @@ public class Simulation extends World<SimulationBody>
 	private boolean onGround = false;
 	private boolean isHoldingSpace = false;
 	private double jumpStart = Double.MAX_VALUE;
-	private final PlayerBody playerBody;
+	private final Body player;
 	
-	public Simulation(PlayerBody playerBody)
+	public Simulation(Body player)
 	{
-		this.playerBody = playerBody;
+		this.player = player;
 
-		addBody(playerBody);
+		addBody(player);
 
 		addStepListener(new StepListenerAdapter<>()
 		{
 			@Override
-			public void begin(TimeStep step, PhysicsWorld<SimulationBody, ?> world)
+			public void begin(TimeStep step, PhysicsWorld<Body, ?> world)
 			{
 				jumpVector = new Vector2(0, 0);
 				movementVector = new Vector2(0, 0);
@@ -39,42 +39,42 @@ public class Simulation extends World<SimulationBody>
 			}
 
 			@Override
-			public void end(TimeStep step, PhysicsWorld<SimulationBody, ?> world)
+			public void end(TimeStep step, PhysicsWorld<Body, ?> world)
 			{
 				jumpVector.normalize();
 				movementVector.normalize();
 
 				if(movementVector.x == 0 && movementVector.y == 0)
 				{
-					double angularVelocity = playerBody.getAngularVelocity();
+					double angularVelocity = Simulation.this.player.getAngularVelocity();
 
 					if(Input.LEFT.isActive() && angularVelocity < 1)
 					{
-						playerBody.applyTorque(Input.LEFT.getValue() * 200000);
+						Simulation.this.player.applyTorque(Input.LEFT.getValue() * 200000);
 					}
 
 					if(Input.RIGHT.isActive() && angularVelocity > -1)
 					{
-						playerBody.applyTorque(Input.RIGHT.getValue() * -200000);
+						Simulation.this.player.applyTorque(Input.RIGHT.getValue() * -200000);
 					}
 
 					if(angularVelocity > 0)
 					{
-						playerBody.applyTorque(-50000);
+						Simulation.this.player.applyTorque(-50000);
 
 						if(angularVelocity < 0)
 						{
-							playerBody.setAngularVelocity(0);
+							Simulation.this.player.setAngularVelocity(0);
 						}
 					}
 
 					if(angularVelocity < 0)
 					{
-						playerBody.applyTorque(50000);
+						Simulation.this.player.applyTorque(50000);
 
 						if(angularVelocity > 0)
 						{
-							playerBody.setAngularVelocity(0);
+							Simulation.this.player.setAngularVelocity(0);
 						}
 					}
 				}
@@ -82,12 +82,12 @@ public class Simulation extends World<SimulationBody>
 				{
 					if(Input.LEFT.isActive())
 					{
-						playerBody.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * 20000));
+						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * 20000));
 					}
 
 					if(Input.RIGHT.isActive())
 					{
-						playerBody.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * -20000));
+						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * -20000));
 					}
 				}
 
@@ -97,11 +97,11 @@ public class Simulation extends World<SimulationBody>
 
 					if((!Input.JUMP.isActive() || jumpTime > 1e9) && jumpTime > 25e7)
 					{
-						playerBody.applyForce(jumpVector.copy().multiply((0.0107 * jumpTime) + 2333333));
+						Simulation.this.player.applyForce(jumpVector.copy().multiply((0.0107 * jumpTime) + 2333333));
 
 						canDoubleJump = true;
 						previousJumpAngle = jumpVector.getDirection();
-						previousPlayerAngle = playerBody.getTransform().getRotationAngle();
+						previousPlayerAngle = Simulation.this.player.getTransform().getRotationAngle();
 						jumpStart = Double.MAX_VALUE;
 					}
 
@@ -117,11 +117,11 @@ public class Simulation extends World<SimulationBody>
 				}
 				else if(canDoubleJump && !isHoldingSpace && Input.JUMP.isActive())
 				{
-					double playerAngleDifference = previousPlayerAngle - playerBody.getTransform().getRotationAngle();
+					double playerAngleDifference = previousPlayerAngle - Simulation.this.player.getTransform().getRotationAngle();
 
-					playerBody.clearForce();
-					playerBody.setLinearVelocity(0, 0);
-					playerBody.applyForce(new Vector2(previousJumpAngle - playerAngleDifference).multiply(10000000));
+					Simulation.this.player.clearForce();
+					Simulation.this.player.setLinearVelocity(0, 0);
+					Simulation.this.player.applyForce(new Vector2(previousJumpAngle - playerAngleDifference).multiply(10000000));
 
 					canDoubleJump = false;
 				}
@@ -138,32 +138,35 @@ public class Simulation extends World<SimulationBody>
 		addContactListener(new ContactListenerAdapter<>()
 		{
 			@Override
-			public void collision(ContactCollisionData<SimulationBody> collision)
+			public void collision(ContactCollisionData<Body> collision)
 			{
 				Body body1 = collision.getBody1();
 				Body body2 = collision.getBody2();
-				Platform platform = null;
+				Body object = null;
+				Vector2[] playerVertices = getBodyVertices(player);
 
-				if(body1 instanceof Platform)
-					platform = (Platform) body1;
+				if(body1 != player)
+					object = body1;
 
-				if(body2 instanceof Platform)
-					platform = (Platform) body2;
+				if(body2 != player)
+					object = body2;
 
-				if(body1 instanceof PlayerBody || body2 instanceof PlayerBody && platform != null)
+				if((body1 == player || body2 == player) && object != null)
 				{
+					Vector2[] objectVertices = getBodyVertices(object);
+
 					canDoubleJump = false;
 
-					for(int i = 0; i < playerBody.getVertices().length; i++)
+					for(int i = 0; i < playerVertices.length; i++)
 					{
-						Vector2 playerVertex1 = playerBody.getVertices()[i];
-						Vector2 playerVertex2 = playerBody.getVertices()[(i + 1) % playerBody.getVertices().length];
+						Vector2 playerVertex1 = playerVertices[i];
+						Vector2 playerVertex2 = playerVertices[(i + 1) % playerVertices.length];
 
-						for(int j = 0; j < platform.getVertices().length; j++)
+						for(int j = 0; j < objectVertices.length; j++)
 						{
-							Vector2 platformVertex1 = platform.getVertices()[j];
-							Vector2 platformVertex2 = platform.getVertices()[(j + 1) % platform.getVertices().length];
-							Vector2 normal = ((Polygon) platform.getFixture(0).getShape()).getNormals()[j];
+							Vector2 platformVertex1 = objectVertices[j];
+							Vector2 platformVertex2 = objectVertices[(j + 1) % objectVertices.length];
+							Vector2 normal = ((Polygon) object.getFixture(0).getShape()).getNormals()[j];
 
 							if(onLineSegment(platformVertex1, platformVertex2, playerVertex1) && onLineSegment(platformVertex1, platformVertex2, playerVertex2))
 							{
@@ -180,6 +183,20 @@ public class Simulation extends World<SimulationBody>
 				}
 			}
 		});
+	}
+
+	private Vector2[] getBodyVertices(Body body)
+	{
+		Polygon polygon = (Polygon) body.getFixture(0).getShape();
+		int sides = polygon.getVertices().length;
+		Vector2[] vertices = new Vector2[sides];
+
+		for(int index = 0; index < sides; index++)
+		{
+			vertices[index] = body.getWorldPoint(polygon.getVertices()[index]);
+		}
+
+		return vertices;
 	}
 
 	private Vector2 projectOnLine(Vector2 startPoint, Vector2 endPoint, Vector2 point)
@@ -206,41 +223,42 @@ public class Simulation extends World<SimulationBody>
 
 	public Vector2 getPlayerCenter()
 	{
-		return playerBody.getWorldCenter();
+		return player.getWorldCenter();
 	}
 
 	public Vector2[] getPlayerVertices()
 	{
+		Vector2[] playerVertices = getBodyVertices(player);
+
 		if(jumpStart != Double.MAX_VALUE)
 		{
-			Vector2[] vertices = playerBody.getVertices();
-			Vector2 localJumpVector = playerBody.getLocalVector(jumpVector);
+			Vector2 localJumpVector = player.getLocalVector(jumpVector);
 			Vector2[] components = {localJumpVector.getXComponent(), localJumpVector.getYComponent()};
 
 			for(Vector2 component : components)
 			{
 				int direction = (int) Math.round((component.getDirection() + (Math.PI * 2)) / (Math.PI / 2));
-				int index1 = (direction + 1) % vertices.length;
-				int index2 = (direction + 2) % vertices.length;
+				int index1 = (direction + 1) % playerVertices.length;
+				int index2 = (direction + 2) % playerVertices.length;
 				double jumpTime = System.nanoTime() - jumpStart;
-				Vector2 shrinkVector = component.copy().rotate(playerBody.getTransform().getRotationAngle()).multiply(4e-8 * jumpTime);
+				Vector2 shrinkVector = component.copy().rotate(player.getTransform().getRotationAngle()).multiply(4e-8 * jumpTime);
 
-				vertices[index1].subtract(shrinkVector);
-				vertices[index2].subtract(shrinkVector);
+				playerVertices[index1].subtract(shrinkVector);
+				playerVertices[index2].subtract(shrinkVector);
 			}
 
-			return vertices;
+			return playerVertices;
 		}
 
-		return playerBody.getVertices();
+		return playerVertices;
 	}
 
 	public Vector2[] getDoubleJumpVertices()
 	{
 		if(canDoubleJump)
 		{
-			double playerAngleDifference = previousPlayerAngle - playerBody.getTransform().getRotationAngle();
-			Vector2 localJumpVector = playerBody.getLocalVector(new Vector2(previousJumpAngle - playerAngleDifference));
+			double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
+			Vector2 localJumpVector = player.getLocalVector(new Vector2(previousJumpAngle - playerAngleDifference));
 			Vector2[] doubleJumpVertices;
 
 			if(Math.round(localJumpVector.x) != 0 && Math.round(localJumpVector.y) != 0)
@@ -264,14 +282,14 @@ public class Simulation extends World<SimulationBody>
 
 	private Vector2[] prepareEffectTemplate(Vector2[] effectTemplate, double offsetAngle)
 	{
-		double playerAngleDifference = previousPlayerAngle - playerBody.getTransform().getRotationAngle();
+		double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
 		double doubleJumpAngle = previousJumpAngle - playerAngleDifference;
 		Vector2 rotationOffset = new Vector2(doubleJumpAngle + offsetAngle);
 
 		for(int i = 0; i < effectTemplate.length; i++)
 		{
-			effectTemplate[i].rotate(playerBody.getLocalVector(rotationOffset).getDirection());
-			effectTemplate[i] = playerBody.getWorldPoint(effectTemplate[i]);
+			effectTemplate[i].rotate(player.getLocalVector(rotationOffset).getDirection());
+			effectTemplate[i] = player.getWorldPoint(effectTemplate[i]);
 		}
 
 		return effectTemplate;

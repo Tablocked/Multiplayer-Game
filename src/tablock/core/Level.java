@@ -1,32 +1,34 @@
 package tablock.core;
 
+import javafx.geometry.Point2D;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Level implements Serializable
 {
     @Serial
-    private static final long serialVersionUID = 4334452L;
-    private final Vertex[][] platformVertices;
+    private static final long serialVersionUID = 7221953647432304606L;
+    private final List<Platform> objects = new ArrayList<>();
 
-    public Level(Vertex[]... platformVertices)
+    public void render(Point2D offset, double scale, GraphicsContext gc)
     {
-        this.platformVertices = platformVertices;
+        gc.setFill(Color.BLACK);
+
+        for(Platform object : objects)
+        {
+            object.transformScreenValues(offset, scale);
+
+            gc.fillPolygon(object.getScreenXValues(), object.getScreenYValues(), object.getScreenXValues().length);
+        }
     }
 
-    public void addPlatformsToSimulation(Simulation simulation)
+    public List<Platform> getObjects()
     {
-        for(Platform platform : getPlatforms())
-            simulation.addBody(platform);
-    }
-
-    public Platform[] getPlatforms()
-    {
-        Platform[] platforms = new Platform[platformVertices.length];
-
-        for(int i = 0; i < platforms.length; i++)
-            platforms[i] = new Platform(platformVertices[i]);
-
-        return platforms;
+        return objects;
     }
 }

@@ -5,7 +5,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
-import org.dyn4j.geometry.Vector2;
 import tablock.core.*;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.CircularButtonStrip;
@@ -22,18 +21,18 @@ public class CreateScreen implements GameState
     private Point2D mousePositionDuringDragStart;
     private Point2D offsetDuringDragStart;
     private Point2D objectPlacementStart;
-    private LevelPlatform objectBeingClicked;
+    private Platform objectBeingClicked;
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private boolean platformMode = false;
-    private List<LevelPlatform> platforms = new ArrayList<>();
     private Point2D mousePositionDuringObjectDragStart;
     private boolean objectWasJustSelected = false;
     private boolean objectWasNeverMoved = true;
-    private final List<LevelPlatform> selectedObjects = new ArrayList<>();
-    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, null, 0, 600)), "Play from start");
-    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, null, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
+    private final Level level;
+    private final List<Platform> selectedObjects = new ArrayList<>();
+    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, 0, 600)), "Play from start");
+    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
     private final CircularButtonStrip objectButtons = new CircularButtonStrip(platformButton);
 
@@ -57,7 +56,7 @@ public class CreateScreen implements GameState
 
     public CreateScreen(Level level)
     {
-        //this.platforms = new ArrayList<>(List.of(level.getPlatforms()));
+        this.level = level;
 
         Input.setOnScrollHandler(scrollEvent ->
         {
@@ -88,35 +87,14 @@ public class CreateScreen implements GameState
         return worldPoint.multiply(-scale).add(offset);
     }
 
-    private double[] getPlatformXValues(Platform platform)
-    {
-        Vector2[] vertices = platform.getVertices();
-        double[] xValues = new double[vertices.length];
-
-        for(int i = 0; i < vertices.length; i++)
-            xValues[i] = (vertices[i].x * scale) + offset.getX();
-
-        return xValues;
-    }
-
-    private double[] getPlatformYValues(Platform platform)
-    {
-        Vector2[] vertices = platform.getVertices();
-        double[] yValues = new double[vertices.length];
-
-        for(int i = 0; i < vertices.length; i++)
-            yValues[i] = (vertices[i].y * -scale) + offset.getY();
-
-        return yValues;
-    }
-
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
         Point2D worldMouse = getWorldMouse();
         Point2D screenMouse = Input.getMousePosition();
         boolean platformsAreClickable = !paused && currentInterface.areNoButtonsSelected() && objectPlacementStart == null;
-        List<LevelPlatform> hoveredObjects = new ArrayList<>();
+        List<Platform> hoveredObjects = new ArrayList<>();
+        List<Platform> platforms = level.getObjects();
 
         if(Input.PAUSE.wasJustActivated())
         {
@@ -162,7 +140,7 @@ public class CreateScreen implements GameState
             }
         }
 
-        for(LevelPlatform platform : platforms)
+        for(Platform platform : platforms)
         {
             platform.transformScreenValues(offset, scale);
 
@@ -206,7 +184,7 @@ public class CreateScreen implements GameState
 
             if(!(Input.MOUSE_LEFT.isActive() && Input.isShiftPressed()) && objectWasNeverMoved)
             {
-                List<LevelPlatform> newPlatforms = new ArrayList<>();
+                List<Platform> newPlatforms = new ArrayList<>();
                 int startingIndex = platforms.indexOf(objectBeingClicked);
 
                 for(int i = 0; i < platforms.size(); i++)
@@ -221,10 +199,12 @@ public class CreateScreen implements GameState
                 {
                     Point2D translation = mousePositionDuringObjectDragStart.subtract(worldMouse);
 
-                    for(LevelPlatform selectedObject : selectedObjects)
+                    for(Platform selectedObject : selectedObjects)
                         selectedObject.translate(translation);
 
                     mousePositionDuringObjectDragStart = worldMouse;
+
+                    hoveredObjects.add(objectBeingClicked);
                 }
                 else
                 {
@@ -241,10 +221,10 @@ public class CreateScreen implements GameState
                 mousePositionDuringObjectDragStart = null;
         }
 
-        for(LevelPlatform platform : platforms)
+        for(Platform platform : platforms)
             platform.render(gc);
 
-        LevelPlatform lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+        Platform lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
 
         gc.setLineWidth(10);
 
@@ -256,7 +236,7 @@ public class CreateScreen implements GameState
 
         gc.setStroke(Color.LIGHTGREEN);
 
-        for(LevelPlatform selectedObject : selectedObjects)
+        for(Platform selectedObject : selectedObjects)
         {
             if(lastHoveredObject == selectedObject)
                 gc.setLineDashes(20);
@@ -289,11 +269,10 @@ public class CreateScreen implements GameState
                 }
                 else if(objectPlacementStart != null && objectPlacementStart.distance(worldMouse) != 0)
                 {
-                    //Point2D midpoint = objectPlacementStart.add(worldMouse).multiply(0.5);
                     Point2D point1 = objectPlacementStart.multiply(-1);
                     Point2D point2 = worldMouse.multiply(-1);
                     Vertex[] vertices = {new Vertex(point1.getX(), point1.getY()), new Vertex(point1.getX(), point2.getY()), new Vertex(point2.getX(), point2.getY()), new Vertex(point2.getX(), point1.getY())};
-                    LevelPlatform platform = new LevelPlatform(vertices);
+                    Platform platform = new Platform(vertices);
                     boolean coincidentVertices = false;
 
                     for(int i = 0; i < vertices.length; i++)
@@ -306,24 +285,7 @@ public class CreateScreen implements GameState
                             }
 
                     if(!coincidentVertices)
-                    {
-//                        try
-//                        {
-//                            platform = new Platform(vertices);
-//                        }
-//                        catch(IllegalArgumentException exception)
-//                        {
-//                            Collections.reverse(Arrays.asList(vertices));
-//
-//                            platform = new Platform(vertices);
-//                        }
-
-                        //Point2D platformPosition = worldMouse.subtract(worldMouse.subtract(midpoint));
-
-                        //platform.translate(-platformPosition.getX(), platformPosition.getY());
-
                         platforms.add(platform);
-                    }
 
                     objectPlacementStart = null;
                 }
@@ -358,5 +320,10 @@ public class CreateScreen implements GameState
 
             buttonStrip.render(gc);
         }
+    }
+
+    public Level getLevel()
+    {
+        return level;
     }
 }
