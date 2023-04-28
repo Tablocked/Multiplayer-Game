@@ -1,4 +1,4 @@
-package tablock.core;
+package tablock.network;
 
 import java.io.Serial;
 import java.io.Serializable;

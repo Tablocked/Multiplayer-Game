@@ -1,7 +1,7 @@
 package tablock.network.packet;
 
-import tablock.core.Player;
 import tablock.network.Client;
+import tablock.network.Player;
 import tablock.network.Server;
 
 import java.io.Serializable;

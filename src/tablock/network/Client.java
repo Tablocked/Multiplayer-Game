@@ -1,6 +1,5 @@
 package tablock.network;
 
-import tablock.core.Player;
 import tablock.network.packet.Packet;
 import tablock.network.packet.client.DisconnectPacket;
 

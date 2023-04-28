@@ -35,10 +35,12 @@ public enum Input
     UI_PAGE_RIGHT("nintendoRightButton", "playstationRightButton", "keyboardE");
     private static final ControllerManager controllers = new ControllerManager();
     private static Point2D mousePosition = new Point2D(-1, -1);
+    private static Point2D scaledMousePosition;
     private static boolean usingMouseControls = true;
     private static boolean mouseHidden = false;
-    private static final List<KeyCode> keysPressed = new ArrayList<>();
     private static boolean shiftPressed = false;
+    private static final double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
+    private static final List<KeyCode> keysPressed = new ArrayList<>();
     private static final List<MouseButton> mouseButtonsPressed = new ArrayList<>();
     private static Scene scene;
     private double value;
@@ -139,6 +141,8 @@ public enum Input
             usingMouseControls = false;
 
         scene.setCursor(usingMouseControls && !mouseHidden ? Cursor.DEFAULT : Cursor.NONE);
+
+        scaledMousePosition = mousePosition.multiply(1 / scaleFactor);
     }
 
     private static void recordDigitalValue(Input input, boolean digitalValue)
@@ -189,9 +193,7 @@ public enum Input
 
     public static Point2D getMousePosition()
     {
-        double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
-
-        return new Point2D(mousePosition.getX() / scaleFactor, mousePosition.getY() / scaleFactor);
+        return scaledMousePosition;
     }
 
     public static boolean isUsingMouseControls()

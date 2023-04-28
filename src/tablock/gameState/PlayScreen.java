@@ -10,9 +10,9 @@ import org.dyn4j.geometry.MassType;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
-import tablock.core.Level;
-import tablock.core.Platform;
 import tablock.core.Simulation;
+import tablock.level.Level;
+import tablock.level.Platform;
 import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
@@ -132,10 +132,6 @@ public class PlayScreen implements GameState
     public void renderNextFrame(GraphicsContext gc)
     {
         double elapsedTime = (System.nanoTime() - frameTime) / 1e9;
-        Vector2[] vertices = simulation.getPlayerVertices();
-        Vector2[] doubleJumpVertices = simulation.getDoubleJumpVertices();
-        double offsetX = -simulation.getPlayerCenter().x + 935;
-        double offsetY = simulation.getPlayerCenter().y + 515;
 
         frameTime = System.nanoTime();
 
@@ -170,33 +166,13 @@ public class PlayScreen implements GameState
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
+        double offsetX = -simulation.getPlayerCenter().x + 935;
+        double offsetY = simulation.getPlayerCenter().y + 515;
+
         gc.beginPath();
 
-        if(doubleJumpVertices != null)
-        {
-            for(int i = 0; i < doubleJumpVertices.length; i++)
-            {
-                Vector2 vertex = doubleJumpVertices[i];
-                double x = vertex.x + offsetX;
-                double y = -vertex.y + offsetY;
-
-                if(i == doubleJumpVertices.length - 2)
-                {
-                    Vector2 endVertex = doubleJumpVertices[doubleJumpVertices.length - 1];
-
-                    gc.quadraticCurveTo(x, y, endVertex.x + offsetX, -endVertex.y + offsetY);
-                }
-                else
-                {
-                    gc.lineTo(x, y);
-                }
-            }
-        }
-        else
-        {
-            for(Vector2 vertex : vertices)
-                gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
-        }
+        for(Vector2 vertex : simulation.getPlayerVertices())
+            gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
 
         gc.setFill(Color.RED);
         gc.fill();

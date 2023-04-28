@@ -226,11 +226,44 @@ public class Simulation extends World<Body>
 		return player.getWorldCenter();
 	}
 
+	private Vector2[] transformVertexTemplate(Vector2[] vertexTemplate, double offsetAngle)
+	{
+		double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
+		double doubleJumpAngle = previousJumpAngle - playerAngleDifference;
+		Vector2 rotationOffset = new Vector2(doubleJumpAngle + offsetAngle);
+
+		for(int i = 0; i < vertexTemplate.length; i++)
+		{
+			vertexTemplate[i].rotate(player.getLocalVector(rotationOffset).getDirection());
+			vertexTemplate[i] = player.getWorldPoint(vertexTemplate[i]);
+		}
+
+		return vertexTemplate;
+	}
+
 	public Vector2[] getPlayerVertices()
 	{
 		Vector2[] playerVertices = getBodyVertices(player);
 
-		if(jumpStart != Double.MAX_VALUE)
+		if(canDoubleJump)
+		{
+			double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
+			Vector2 localJumpVector = player.getLocalVector(new Vector2(previousJumpAngle - playerAngleDifference));
+
+			if(Math.round(localJumpVector.x) != 0 && Math.round(localJumpVector.y) != 0)
+			{
+				Vector2[] vertexTemplate = new Vector2[]{new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(-6.25, 25), new Vector2(-12.5, 12.5), new Vector2(-25, 6.25)};
+
+				playerVertices = transformVertexTemplate(vertexTemplate, Math.PI / 4);
+			}
+			else
+			{
+				Vector2[] vertexTemplate = new Vector2[]{new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(0, 12.5), new Vector2(-25, 25)};
+
+				playerVertices = transformVertexTemplate(vertexTemplate, Math.PI / 2);
+			}
+		}
+		else if(jumpStart != Double.MAX_VALUE)
 		{
 			Vector2 localJumpVector = player.getLocalVector(jumpVector);
 			Vector2[] components = {localJumpVector.getXComponent(), localJumpVector.getYComponent()};
@@ -246,52 +279,8 @@ public class Simulation extends World<Body>
 				playerVertices[index1].subtract(shrinkVector);
 				playerVertices[index2].subtract(shrinkVector);
 			}
-
-			return playerVertices;
 		}
 
 		return playerVertices;
-	}
-
-	public Vector2[] getDoubleJumpVertices()
-	{
-		if(canDoubleJump)
-		{
-			double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
-			Vector2 localJumpVector = player.getLocalVector(new Vector2(previousJumpAngle - playerAngleDifference));
-			Vector2[] doubleJumpVertices;
-
-			if(Math.round(localJumpVector.x) != 0 && Math.round(localJumpVector.y) != 0)
-			{
-				Vector2[] effectTemplate = new Vector2[]{new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(0, 25), new Vector2(0, 0), new Vector2(-25, 0)};
-
-				doubleJumpVertices = prepareEffectTemplate(effectTemplate, Math.PI / 4);
-			}
-			else
-			{
-				Vector2[] effectTemplate = new Vector2[]{new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(0, 0), new Vector2(-25, 25)};
-
-				doubleJumpVertices = prepareEffectTemplate(effectTemplate, Math.PI / 2);
-			}
-
-			return doubleJumpVertices;
-		}
-
-		return null;
-	}
-
-	private Vector2[] prepareEffectTemplate(Vector2[] effectTemplate, double offsetAngle)
-	{
-		double playerAngleDifference = previousPlayerAngle - player.getTransform().getRotationAngle();
-		double doubleJumpAngle = previousJumpAngle - playerAngleDifference;
-		Vector2 rotationOffset = new Vector2(doubleJumpAngle + offsetAngle);
-
-		for(int i = 0; i < effectTemplate.length; i++)
-		{
-			effectTemplate[i].rotate(player.getLocalVector(rotationOffset).getDirection());
-			effectTemplate[i] = player.getWorldPoint(effectTemplate[i]);
-		}
-
-		return effectTemplate;
 	}
 }

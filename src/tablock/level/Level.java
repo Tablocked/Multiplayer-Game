@@ -1,8 +1,7 @@
-package tablock.core;
+package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -13,17 +12,14 @@ public class Level implements Serializable
 {
     @Serial
     private static final long serialVersionUID = 7221953647432304606L;
-    private final List<Platform> objects = new ArrayList<>();
+    private final List<Platform> objects = new ArrayList<>(List.of(new Platform(new Point2D(0, 0), new Point2D(200, 200))));
 
     public void render(Point2D offset, double scale, GraphicsContext gc)
     {
-        gc.setFill(Color.BLACK);
-
         for(Platform object : objects)
         {
             object.transformScreenValues(offset, scale);
-
-            gc.fillPolygon(object.getScreenXValues(), object.getScreenYValues(), object.getScreenXValues().length);
+            object.renderObject(gc);
         }
     }
 

@@ -6,8 +6,8 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import tablock.core.Input;
-import tablock.core.Level;
 import tablock.core.Main;
+import tablock.level.Level;
 import tablock.userInterface.*;
 
 import java.io.File;

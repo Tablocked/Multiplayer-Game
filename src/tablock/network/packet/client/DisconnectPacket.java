@@ -1,6 +1,6 @@
 package tablock.network.packet.client;
 
-import tablock.core.Player;
+import tablock.network.Player;
 import tablock.network.Server;
 import tablock.network.packet.Packet.ClientPacket;
 

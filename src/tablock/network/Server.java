@@ -3,7 +3,6 @@ package tablock.network;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
-import tablock.core.Player;
 import tablock.network.packet.Packet;
 import tablock.network.packet.server.PlayerPositionsPacket;
 
