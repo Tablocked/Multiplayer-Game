@@ -13,9 +13,9 @@ public class Selector<T extends Selectable>
     private Point2D mousePositionDuringDragStart;
     private boolean objectWasJustSelected;
     private boolean objectWasNeverMoved = true;
-    private List<T> objects;
-    private List<Selectable> hoveredObjects;
-    private final List<Selectable> selectedObjects = new ArrayList<>();
+    private final List<T> objects;
+    private final List<T> hoveredObjects = new ArrayList<>();
+    private final List<T> selectedObjects = new ArrayList<>();
 
     public Selector(List<T> objects)
     {
@@ -29,12 +29,11 @@ public class Selector<T extends Selectable>
 
     public void render(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse, GraphicsContext gc)
     {
-        hoveredObjects = new ArrayList<>();
+        hoveredObjects.clear();
 
         for(T object : objects)
         {
-            if(object instanceof Platform)
-                ((Platform) object).transformScreenValues(offset, scale);
+            object.updateScreenValues(offset, scale);
 
             if(objectsAreSelectable && object.isHoveredByMouse())
             {
@@ -85,7 +84,7 @@ public class Selector<T extends Selectable>
                     Point2D translation = mousePositionDuringDragStart.subtract(worldMouse);
 
                     for(Selectable selectedObject : selectedObjects)
-                        selectedObject.translate(translation);
+                        selectedObject.translate(translation, offset, scale);
 
                     mousePositionDuringDragStart = worldMouse;
 
@@ -106,22 +105,33 @@ public class Selector<T extends Selectable>
                 mousePositionDuringDragStart = null;
         }
 
-        Selectable lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+        T lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
 
         for(Selectable object : objects)
-        {
-            if(object instanceof Platform)
-                ((Platform) object).transformScreenValues(offset, scale);
-
             object.renderObject(gc);
-        }
 
-        for(Selectable object : objects)
-            object.renderOutline(object == lastHoveredObject, selectedObjects.contains(object), gc);
+        if(lastHoveredObject != null && !selectedObjects.contains(lastHoveredObject))
+            lastHoveredObject.renderOutline(true, false, gc);
+
+        for(Selectable object : selectedObjects)
+            object.renderOutline(object == lastHoveredObject, true, gc);
+    }
+
+    public boolean isAnObjectBeingClicked()
+    {
+        return objectBeingClicked != null;
     }
 
     public boolean areNoObjectsHovered()
     {
         return hoveredObjects.size() == 0;
+    }
+
+    public T getOnlySelectedObject()
+    {
+        if(selectedObjects.size() == 1 && objectWasJustSelected)
+            return selectedObjects.get(0);
+        else
+            return null;
     }
 }

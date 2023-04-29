@@ -18,7 +18,7 @@ public class Level implements Serializable
     {
         for(Platform object : objects)
         {
-            object.transformScreenValues(offset, scale);
+            object.updateScreenValues(offset, scale);
             object.renderObject(gc);
         }
     }

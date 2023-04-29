@@ -1,11 +1,11 @@
 package tablock.userInterface;
 
 import javafx.geometry.Bounds;
-import javafx.geometry.Point2D;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
 import tablock.core.Input;
 import tablock.gameState.Renderer;
@@ -42,15 +42,14 @@ public abstract class Button
         if(hidden)
             return;
 
-        Rectangle2D rectangularShape = new Rectangle2D(x - (width / 2), y - (height / 2), width, height);
         double diagonal = Math.sqrt(2 * Math.pow(width, 2));
         double offset = diagonal / 2;
-        Circle circularShape = new Circle(x, y, diagonal / 2);
-        Point2D mousePosition = Input.getMousePosition();
+        Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
+        Shape shape = circular ? new Circle(x, y, diagonal / 2) : rectangle;
 
         if(!frozen && Input.isUsingMouseControls())
         {
-            if((rectangularShape.contains(mousePosition) && !circular) || (circularShape.contains(mousePosition) && circular))
+            if(shape.contains(Input.getMousePosition()))
             {
                 selected = true;
 
@@ -103,7 +102,7 @@ public abstract class Button
             }
         }
         else
-            gc.fillRect(rectangularShape.getMinX(), rectangularShape.getMinY(), width, height);
+            gc.fillRect(rectangle.getX(), rectangle.getY(), width, height);
     }
 
     public void preventActivationForOneFrame()
