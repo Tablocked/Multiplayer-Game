@@ -8,12 +8,12 @@ import tablock.core.Main;
 
 import java.io.Serial;
 
-public class MovableVertex extends Selectable
+public class Vertex extends Selectable
 {
     @Serial
     private static final long serialVersionUID = -7071404509826592462L;
 
-    public MovableVertex(double worldX, double worldY)
+    public Vertex(double worldX, double worldY)
     {
         super(new double[]{worldX}, new double[]{worldY});
     }

@@ -7,16 +7,12 @@ import javafx.scene.shape.Rectangle;
 import tablock.core.Input;
 import tablock.core.Main;
 import tablock.level.Level;
-import tablock.level.MovableVertex;
 import tablock.level.Platform;
 import tablock.level.Selector;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.CircularButtonStrip;
 import tablock.userInterface.ImageButton;
 import tablock.userInterface.TextButton;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CreateScreen implements GameState
 {
@@ -30,7 +26,6 @@ public class CreateScreen implements GameState
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private boolean platformMode = false;
     private final Level level;
-    private Selector<MovableVertex> vertexSelector;
     private final Selector<Platform> objectSelector;
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
@@ -59,7 +54,7 @@ public class CreateScreen implements GameState
     {
         this.level = level;
 
-        objectSelector = new Selector<>(level.getObjects());
+        objectSelector = new Selector<>(level.getObjects(), true);
 
         Input.setOnScrollHandler(scrollEvent ->
         {
@@ -140,29 +135,16 @@ public class CreateScreen implements GameState
             }
         }
 
-        boolean anObjectBeingClicked = objectSelector.isAnObjectBeingClicked() || (vertexSelector != null && vertexSelector.isAnObjectBeingClicked());
+        boolean anObjectBeingClicked = objectSelector.isAnObjectBeingClicked();
         boolean objectsAreSelectable = !paused && objectPlacementStart == null && (currentInterface.areNoButtonsSelected() || anObjectBeingClicked);
 
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, offset, scale, worldMouse);
+        objectSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.render(objectsAreSelectable, offset, scale, worldMouse, gc);
-
-        Platform onlySelectedObject = objectSelector.getOnlySelectedObject();
-
-        if(onlySelectedObject != null)
-        {
-            List<MovableVertex> movableVertices = new ArrayList<>();
-
-            for(int i = 0; i < onlySelectedObject.getWorldXValues().length; i++)
-                movableVertices.add(new MovableVertex(onlySelectedObject.getWorldXValues()[i], onlySelectedObject.getWorldYValues()[i]));
-
-            vertexSelector = new Selector<>(movableVertices);
-        }
-
-        if(vertexSelector != null)
-            vertexSelector.render(objectsAreSelectable, offset, scale, worldMouse, gc);
 
         if(paused)
             objectPlacementStart = null;
-        else if(platformMode && currentInterface.areNoButtonsSelected() && objectSelector.areNoObjectsHovered() && (vertexSelector == null || vertexSelector.areNoObjectsHovered()))
+        else if(platformMode && currentInterface.areNoButtonsSelected() && !anObjectBeingClicked && objectSelector.areNoObjectsHovered())
         {
             if(Input.MOUSE_LEFT.wasJustActivated())
                 objectPlacementStart = worldMouse;
