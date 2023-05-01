@@ -12,6 +12,7 @@ public class Platform extends Selectable
 {
     @Serial
     private static final long serialVersionUID = 7944900121369452854L;
+    private boolean simplePolygon = true;
 
     public Platform(Point2D point1, Point2D point2)
     {
@@ -32,7 +33,8 @@ public class Platform extends Selectable
     @Override
     public void renderObject(GraphicsContext gc)
     {
-        gc.setFill(Color.BLACK);
+        gc.setFill(simplePolygon ? Color.BLACK : Color.DARKRED);
+
         gc.fillPolygon(screenXValues, screenYValues, screenXValues.length);
     }
 
@@ -46,7 +48,11 @@ public class Platform extends Selectable
 
         gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
         gc.strokePolygon(screenXValues, screenYValues, screenXValues.length);
-
         gc.setLineDashes(0);
+    }
+
+    public void setSimplePolygon(boolean simplePolygon)
+    {
+        this.simplePolygon = simplePolygon;
     }
 }

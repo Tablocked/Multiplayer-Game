@@ -2,6 +2,8 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import org.dyn4j.geometry.Vector2;
+import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
 
 import java.util.ArrayList;
@@ -58,6 +60,14 @@ public class Selector<T extends Selectable>
                 hoveredObjects.add(object);
             }
         }
+
+        if(Input.MOUSE_LEFT.isActive() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null))
+        {
+            selectedObjects.clear();
+
+            if(vertexSelector != null)
+                vertexSelector.objects.clear();
+        }
     }
 
     public void tick(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse)
@@ -111,8 +121,6 @@ public class Selector<T extends Selectable>
                 else if(!objectWasJustSelected && objectWasNeverMoved)
                     selectedObjects.remove(objectBeingClicked);
             }
-            else
-                mousePositionDuringDragStart = null;
 
             if(vertexSelector != null)
             {
@@ -122,10 +130,10 @@ public class Selector<T extends Selectable>
                 vertexSelector.hoveredObjects.clear();
                 vertexSelector.selectedObjects.clear();
 
-                if(selectedObjects.contains(objectBeingClicked))
+                if(selectedObjects.contains(objectBeingClicked) && selectedObjects.size() == 1)
                     for(int i = 0; i < objectBeingClicked.vertexCount; i++)
                     {
-                        Vertex vertex = new Vertex(objectBeingClicked.worldXValues[i], objectBeingClicked.worldYValues[i]);
+                        Vertex vertex = new Vertex(objectBeingClicked.worldXValues[i], objectBeingClicked.worldYValues[i], i);
 
                         vertex.updateScreenValues(offset, scale);
 
@@ -134,16 +142,47 @@ public class Selector<T extends Selectable>
             }
         }
 
-        if(!Input.MOUSE_LEFT.isActive())
+        if(vertexSelector != null)
+        {
+            Selectable onlySelectedObject = selectedObjects.size() == 1 ? selectedObjects.get(0) : null;
+
+            vertexSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
+
+            if(onlySelectedObject != null)
+            {
+                List<Vector2> vectors = new ArrayList<>();
+                SweepLine sweepLine = new SweepLine();
+
+                for(Vertex vertex : vertexSelector.objects)
+                {
+                    onlySelectedObject.worldXValues[vertex.index] = vertex.worldXValues[0];
+                    onlySelectedObject.worldYValues[vertex.index] = vertex.worldYValues[0];
+                    onlySelectedObject.screenXValues[vertex.index] = vertex.screenXValues[0];
+                    onlySelectedObject.screenYValues[vertex.index] = vertex.screenYValues[0];
+
+                    vectors.add(new Vector2(vertex.worldXValues[0], vertex.worldYValues[0]));
+                }
+
+                try
+                {
+                    sweepLine.decompose(vectors);
+
+                    ((Platform) onlySelectedObject).setSimplePolygon(true);
+                }
+                catch(IllegalArgumentException exception)
+                {
+                    ((Platform) onlySelectedObject).setSimplePolygon(false);
+                }
+            }
+        }
+
+        if(!Input.MOUSE_LEFT.isActive() || !objectsAreSelectable)
         {
             objectWasJustSelected = false;
             objectWasNeverMoved = true;
             objectBeingClicked = null;
             mousePositionDuringDragStart = null;
         }
-
-        if(vertexSelector != null)
-            vertexSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
     }
 
     public void render(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse, GraphicsContext gc)

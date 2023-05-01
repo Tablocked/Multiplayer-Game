@@ -12,10 +12,13 @@ public class Vertex extends Selectable
 {
     @Serial
     private static final long serialVersionUID = -7071404509826592462L;
+    protected final int index;
 
-    public Vertex(double worldX, double worldY)
+    public Vertex(double worldX, double worldY, int index)
     {
         super(new double[]{worldX}, new double[]{worldY});
+
+        this.index = index;
     }
 
     @Override
@@ -42,7 +45,6 @@ public class Vertex extends Selectable
 
         gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
         gc.strokeOval(screenXValues[0] - 15, screenYValues[0] - 15, 30, 30);
-
         gc.setLineDashes(0);
     }
 }
