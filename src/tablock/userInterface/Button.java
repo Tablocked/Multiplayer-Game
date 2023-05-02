@@ -137,6 +137,16 @@ public abstract class Button
         this.y = y;
     }
 
+    public double getX()
+    {
+        return x;
+    }
+
+    public double getY()
+    {
+        return y;
+    }
+
     public void setSelected(boolean selected)
     {
         this.selected = selected;

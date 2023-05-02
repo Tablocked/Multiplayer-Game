@@ -30,13 +30,13 @@ public class CreateScreen implements GameState
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> Renderer.setCurrentState(new PlayScreen(this, 0, 600)), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> Renderer.setCurrentState(new PlayScreen(this, -worldInterfacePosition.getX(), worldInterfacePosition.getY())), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
-    private final CircularButtonStrip objectButtons = new CircularButtonStrip(platformButton);
+    private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
 
-    private final CircularButtonStrip mainInterfaceButtons = new CircularButtonStrip
+    private final CircularButtonStrip mainInterface = new CircularButtonStrip
     (
         playFromStartButton,
         playFromHereButton,
-        new ImageButton(Main.getTexture("objectsButton"), () -> currentInterface = objectButtons, "Objects")
+        new ImageButton(Main.getTexture("objectsButton"), () -> currentInterface = objectInterface, "Objects")
     );
 
     private final ButtonStrip buttonStrip = new ButtonStrip
@@ -48,7 +48,7 @@ public class CreateScreen implements GameState
         new TextButton(960, 740, "Quit To Desktop", 100, () -> System.exit(0))
     );
 
-    private CircularButtonStrip currentInterface = mainInterfaceButtons;
+    private CircularButtonStrip currentInterface = mainInterface;
 
     public CreateScreen(Level level)
     {
@@ -119,18 +119,18 @@ public class CreateScreen implements GameState
                 {
                     interfaceOpen = true;
                     worldInterfacePosition = worldMouse;
-                    currentInterface = mainInterfaceButtons;
+                    currentInterface = mainInterface;
                 }
-                else if(currentInterface == mainInterfaceButtons)
+                else if(currentInterface == mainInterface)
                 {
                     interfaceOpen = !interfaceOpen;
                     worldInterfacePosition = worldMouse;
                 }
                 else
                 {
-                    mainInterfaceButtons.deselectAllButtons();
+                    mainInterface.deselectAllButtons();
 
-                    currentInterface = mainInterfaceButtons;
+                    currentInterface = mainInterface;
                 }
             }
         }
@@ -174,6 +174,13 @@ public class CreateScreen implements GameState
             }
         }
 
+        for(Platform platform : objectSelector.getComplexPlatforms())
+        {
+            Point2D center = platform.getCenter();
+
+            gc.drawImage(Main.getTexture("warning"), center.getX(), center.getY());
+        }
+
         if(interfaceOpen)
         {
             Point2D screenInterfacePosition = getScreenPoint(worldInterfacePosition);
@@ -191,6 +198,12 @@ public class CreateScreen implements GameState
 
             currentInterface.setFrozen(paused || objectPlacementStart != null || anObjectBeingClicked);
             currentInterface.render(screenInterfacePosition.getX(), screenInterfacePosition.getY(), gc);
+
+            if(objectSelector.getComplexPlatforms().size() != 0 && currentInterface == mainInterface)
+            {
+                gc.drawImage(Main.getTexture("warning"), playFromStartButton.getX(), playFromStartButton.getY());
+                gc.drawImage(Main.getTexture("warning"), playFromHereButton.getX(), playFromHereButton.getY());
+            }
         }
         else
             currentInterface.deselectAllButtons();

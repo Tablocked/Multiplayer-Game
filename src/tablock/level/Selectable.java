@@ -54,6 +54,20 @@ public abstract class Selectable implements Serializable
         }
     }
 
+    public Point2D getCenter()
+    {
+        double sumX = 0;
+        double sumY = 0;
+
+        for(int i = 0; i < vertexCount; i++)
+        {
+            sumX += screenXValues[i];
+            sumY += screenYValues[i];
+        }
+
+        return new Point2D(sumX / vertexCount, sumY / vertexCount);
+    }
+
     public double[] getWorldXValues()
     {
         return worldXValues;

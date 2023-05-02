@@ -1,5 +1,6 @@
 package tablock.core;
 
+import org.dyn4j.collision.Fixture;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.dynamics.TimeStep;
 import org.dyn4j.geometry.Polygon;
@@ -142,19 +143,14 @@ public class Simulation extends World<Body>
 			{
 				Body body1 = collision.getBody1();
 				Body body2 = collision.getBody2();
-				Body object = null;
+				Fixture fixture1 = collision.getFixture1();
+				Fixture fixture2 = collision.getFixture2();
+				Fixture objectFixture = body1 == player ? fixture2 : fixture1;
 				Vector2[] playerVertices = getBodyVertices(player);
+				Vector2[] objectVertices = getFixtureVertices(body1 == player ? body2 : body1, objectFixture);
 
-				if(body1 != player)
-					object = body1;
-
-				if(body2 != player)
-					object = body2;
-
-				if((body1 == player || body2 == player) && object != null)
+				if(body1 == player || body2 == player)
 				{
-					Vector2[] objectVertices = getBodyVertices(object);
-
 					canDoubleJump = false;
 
 					for(int i = 0; i < playerVertices.length; i++)
@@ -166,7 +162,7 @@ public class Simulation extends World<Body>
 						{
 							Vector2 platformVertex1 = objectVertices[j];
 							Vector2 platformVertex2 = objectVertices[(j + 1) % objectVertices.length];
-							Vector2 normal = ((Polygon) object.getFixture(0).getShape()).getNormals()[j];
+							Vector2 normal = ((Polygon) objectFixture.getShape()).getNormals()[j];
 
 							if(onLineSegment(platformVertex1, platformVertex2, playerVertex1) && onLineSegment(platformVertex1, platformVertex2, playerVertex2))
 							{
@@ -185,9 +181,9 @@ public class Simulation extends World<Body>
 		});
 	}
 
-	private Vector2[] getBodyVertices(Body body)
+	private Vector2[] getFixtureVertices(Body body, Fixture fixture)
 	{
-		Polygon polygon = (Polygon) body.getFixture(0).getShape();
+		Polygon polygon = (Polygon) fixture.getShape();
 		int sides = polygon.getVertices().length;
 		Vector2[] vertices = new Vector2[sides];
 
@@ -197,6 +193,11 @@ public class Simulation extends World<Body>
 		}
 
 		return vertices;
+	}
+
+	private Vector2[] getBodyVertices(Body body)
+	{
+		return getFixtureVertices(body, body.getFixture(0));
 	}
 
 	private Vector2 projectOnLine(Vector2 startPoint, Vector2 endPoint, Vector2 point)

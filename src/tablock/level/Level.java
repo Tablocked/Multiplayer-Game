@@ -12,7 +12,7 @@ public class Level implements Serializable
 {
     @Serial
     private static final long serialVersionUID = 7221953647432304606L;
-    private final List<Platform> objects = new ArrayList<>(List.of(new Platform(new Point2D(0, 0), new Point2D(200, 200))));
+    private final List<Platform> objects = new ArrayList<>();
 
     public void render(Point2D offset, double scale, GraphicsContext gc)
     {

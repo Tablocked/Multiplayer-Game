@@ -18,6 +18,7 @@ public class Selector<T extends Selectable>
     private final List<T> objects;
     private final List<T> hoveredObjects = new ArrayList<>();
     private final List<T> selectedObjects = new ArrayList<>();
+    private final List<Platform> complexPlatforms = new ArrayList<>();
     private final Selector<Vertex> vertexSelector;
 
     public Selector()
@@ -61,7 +62,7 @@ public class Selector<T extends Selectable>
             }
         }
 
-        if(Input.MOUSE_LEFT.isActive() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null))
+        if(Input.MOUSE_LEFT.isActive() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null) && objectsAreSelectable)
         {
             selectedObjects.clear();
 
@@ -152,6 +153,7 @@ public class Selector<T extends Selectable>
             {
                 List<Vector2> vectors = new ArrayList<>();
                 SweepLine sweepLine = new SweepLine();
+                Platform platform = (Platform) onlySelectedObject;
 
                 for(Vertex vertex : vertexSelector.objects)
                 {
@@ -167,11 +169,16 @@ public class Selector<T extends Selectable>
                 {
                     sweepLine.decompose(vectors);
 
-                    ((Platform) onlySelectedObject).setSimplePolygon(true);
+                    platform.setSimplePolygon(true);
+
+                    complexPlatforms.remove(platform);
                 }
                 catch(IllegalArgumentException exception)
                 {
-                    ((Platform) onlySelectedObject).setSimplePolygon(false);
+                    platform.setSimplePolygon(false);
+
+                    if(!complexPlatforms.contains(platform))
+                        complexPlatforms.add(platform);
                 }
             }
         }
@@ -210,5 +217,10 @@ public class Selector<T extends Selectable>
     public boolean areNoObjectsHovered()
     {
         return hoveredObjects.size() == 0 && (vertexSelector == null || vertexSelector.areNoObjectsHovered());
+    }
+
+    public List<Platform> getComplexPlatforms()
+    {
+        return complexPlatforms;
     }
 }
