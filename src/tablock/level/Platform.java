@@ -35,7 +35,7 @@ public class Platform extends Selectable
     {
         gc.setFill(simplePolygon ? Color.BLACK : Color.DARKRED);
 
-        gc.fillPolygon(screenXValues, screenYValues, screenXValues.length);
+        gc.fillPolygon(screenXValues, screenYValues, vertexCount);
     }
 
     @Override
@@ -47,12 +47,32 @@ public class Platform extends Selectable
             gc.setLineDashes(20);
 
         gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
-        gc.strokePolygon(screenXValues, screenYValues, screenXValues.length);
+        gc.strokePolygon(screenXValues, screenYValues, vertexCount);
         gc.setLineDashes(0);
+    }
+
+    public void renderComplexPolygonAlert(double opacity, GraphicsContext gc)
+    {
+        gc.setFill(Color.rgb(255, 255, 0, opacity));
+        gc.fillPolygon(screenXValues, screenYValues, vertexCount);
     }
 
     public void setSimplePolygon(boolean simplePolygon)
     {
         this.simplePolygon = simplePolygon;
+    }
+
+    public Point2D getScreenCenter()
+    {
+        double sumX = 0;
+        double sumY = 0;
+
+        for(int i = 0; i < vertexCount; i++)
+        {
+            sumX += screenXValues[i];
+            sumY += screenYValues[i];
+        }
+
+        return new Point2D(sumX / vertexCount, sumY / vertexCount);
     }
 }
