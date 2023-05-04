@@ -21,6 +21,7 @@ public enum Input
     MOUSE_LEFT,
     MOUSE_RIGHT,
     MOUSE_MIDDLE,
+    DELETE,
     LEFT,
     RIGHT,
     JUMP,
@@ -120,6 +121,7 @@ public enum Input
         recordDigitalValue(MOUSE_LEFT, mouseButtonsPressed.contains(MouseButton.PRIMARY));
         recordDigitalValue(MOUSE_RIGHT, mouseButtonsPressed.contains(MouseButton.SECONDARY));
         recordDigitalValue(MOUSE_MIDDLE, mouseButtonsPressed.contains(MouseButton.MIDDLE));
+        recordDigitalValue(DELETE, keysPressed.contains(KeyCode.DELETE));
 
         recordDigitalOrAnalogValue(LEFT, keysPressed.contains(KeyCode.A), controller.leftStickX, false);
         recordDigitalOrAnalogValue(RIGHT, keysPressed.contains(KeyCode.D), controller.leftStickX, true);

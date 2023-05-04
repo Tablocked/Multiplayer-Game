@@ -2,11 +2,13 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Selector<T extends Selectable>
@@ -32,6 +34,18 @@ public class Selector<T extends Selectable>
         this.objects = objects;
 
         vertexSelector = movableVertices ? new Selector<>() : null;
+    }
+
+    private void resetVertexSelector()
+    {
+        if(vertexSelector != null)
+        {
+            vertexSelector.objectBeingClicked = null;
+
+            vertexSelector.objects.clear();
+            vertexSelector.hoveredObjects.clear();
+            vertexSelector.selectedObjects.clear();
+        }
     }
 
     public void addObject(T object)
@@ -62,7 +76,7 @@ public class Selector<T extends Selectable>
             }
         }
 
-        if(Input.MOUSE_LEFT.isActive() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null) && objectsAreSelectable)
+        if(Input.MOUSE_LEFT.wasJustActivated() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null) && objectsAreSelectable)
         {
             selectedObjects.clear();
 
@@ -123,63 +137,88 @@ public class Selector<T extends Selectable>
                     selectedObjects.remove(objectBeingClicked);
             }
 
-            if(vertexSelector != null)
+            resetVertexSelector();
+
+            if(vertexSelector != null && selectedObjects.size() == 1)
             {
-                vertexSelector.objectBeingClicked = null;
+                Selectable lastSelectedObject = selectedObjects.get(0);
 
-                vertexSelector.objects.clear();
-                vertexSelector.hoveredObjects.clear();
-                vertexSelector.selectedObjects.clear();
+                for(int i = 0; i < lastSelectedObject.vertexCount; i++)
+                {
+                    Vertex vertex = new Vertex(lastSelectedObject.worldXValues[i], lastSelectedObject.worldYValues[i], i);
 
-                if(selectedObjects.contains(objectBeingClicked) && selectedObjects.size() == 1)
-                    for(int i = 0; i < objectBeingClicked.vertexCount; i++)
-                    {
-                        Vertex vertex = new Vertex(objectBeingClicked.worldXValues[i], objectBeingClicked.worldYValues[i], i);
+                    vertex.updateScreenValues(offset, scale);
 
-                        vertex.updateScreenValues(offset, scale);
-
-                        vertexSelector.objects.add(vertex);
-                    }
+                    vertexSelector.objects.add(vertex);
+                }
             }
         }
 
-        if(vertexSelector != null)
+        if(vertexSelector != null && selectedObjects.size() == 1)
         {
-            Selectable onlySelectedObject = selectedObjects.size() == 1 ? selectedObjects.get(0) : null;
+            List<Vector2> vertices = new ArrayList<>();
+            SweepLine sweepLine = new SweepLine();
+            Platform platform = (Platform) selectedObjects.get(0);
+            boolean successfulDecomposition;
+            boolean successfulPolygon;
 
             vertexSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
 
-            if(onlySelectedObject != null)
+            for(Vertex vertex : vertexSelector.objects)
             {
-                List<Vector2> vectors = new ArrayList<>();
-                SweepLine sweepLine = new SweepLine();
-                Platform platform = (Platform) onlySelectedObject;
+                platform.worldXValues[vertex.index] = vertex.worldXValues[0];
+                platform.worldYValues[vertex.index] = vertex.worldYValues[0];
+                platform.screenXValues[vertex.index] = vertex.screenXValues[0];
+                platform.screenYValues[vertex.index] = vertex.screenYValues[0];
 
-                for(Vertex vertex : vertexSelector.objects)
-                {
-                    onlySelectedObject.worldXValues[vertex.index] = vertex.worldXValues[0];
-                    onlySelectedObject.worldYValues[vertex.index] = vertex.worldYValues[0];
-                    onlySelectedObject.screenXValues[vertex.index] = vertex.screenXValues[0];
-                    onlySelectedObject.screenYValues[vertex.index] = vertex.screenYValues[0];
+                vertices.add(new Vector2(vertex.worldXValues[0], vertex.worldYValues[0]));
+            }
 
-                    vectors.add(new Vector2(vertex.worldXValues[0], vertex.worldYValues[0]));
-                }
+            try
+            {
+                sweepLine.decompose(vertices);
 
+                successfulDecomposition = true;
+            }
+            catch(IllegalArgumentException exception)
+            {
+                successfulDecomposition = false;
+            }
+
+            try
+            {
+                new Polygon(vertices.toArray(new Vector2[0]));
+
+                successfulPolygon = true;
+            }
+            catch(IllegalArgumentException exception1)
+            {
                 try
                 {
-                    sweepLine.decompose(vectors);
+                    Collections.reverse(vertices);
 
-                    platform.setSimplePolygon(true);
+                    new Polygon(vertices.toArray(new Vector2[0]));
 
-                    complexPlatforms.remove(platform);
+                    successfulPolygon = true;
                 }
-                catch(IllegalArgumentException exception)
+                catch(IllegalArgumentException exception2)
                 {
-                    platform.setSimplePolygon(false);
-
-                    if(!complexPlatforms.contains(platform))
-                        complexPlatforms.add(platform);
+                    successfulPolygon = false;
                 }
+            }
+
+            if(successfulDecomposition || successfulPolygon)
+            {
+                platform.setSimplePolygon(true);
+
+                complexPlatforms.remove(platform);
+            }
+            else
+            {
+                platform.setSimplePolygon(false);
+
+                if(!complexPlatforms.contains(platform))
+                    complexPlatforms.add(platform);
             }
         }
 
@@ -189,6 +228,49 @@ public class Selector<T extends Selectable>
             objectWasNeverMoved = true;
             objectBeingClicked = null;
             mousePositionDuringDragStart = null;
+        }
+
+        if(Input.DELETE.wasJustActivated() && vertexSelector != null)
+        {
+            if(vertexSelector.selectedObjects.size() == 0)
+            {
+                objects.removeAll(selectedObjects);
+                hoveredObjects.removeAll(selectedObjects);
+                complexPlatforms.removeIf(selectedObjects::contains);
+                selectedObjects.clear();
+
+                resetVertexSelector();
+            }
+            else if(selectedObjects.size() == 1 && vertexSelector.objects.size() > 3)
+            {
+                Selectable object = selectedObjects.get(0);
+
+                vertexSelector.objects.removeAll(vertexSelector.selectedObjects);
+                vertexSelector.hoveredObjects.removeAll(vertexSelector.selectedObjects);
+                vertexSelector.selectedObjects.clear();
+
+                vertexSelector.objectBeingClicked = null;
+
+                int newVertexCount = vertexSelector.objects.size();
+
+                object.vertexCount = newVertexCount;
+                object.worldXValues = new double[newVertexCount];
+                object.worldYValues = new double[newVertexCount];
+                object.screenXValues = new double[newVertexCount];
+                object.screenYValues = new double[newVertexCount];
+
+                for(int i = 0; i < newVertexCount; i++)
+                {
+                    Vertex vertex = vertexSelector.objects.get(i);
+
+                    vertex.index = i;
+
+                    object.worldXValues[i] = vertex.worldXValues[0];
+                    object.worldYValues[i] = vertex.worldYValues[0];
+                    object.screenXValues[i] = vertex.screenXValues[0];
+                    object.screenYValues[i] = vertex.screenYValues[0];
+                }
+            }
         }
     }
 

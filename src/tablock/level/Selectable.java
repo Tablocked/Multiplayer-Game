@@ -10,11 +10,11 @@ public abstract class Selectable implements Serializable
 {
     @Serial
     private static final long serialVersionUID = 2724148026362484980L;
-    protected final int vertexCount;
-    protected final double[] worldXValues;
-    protected final double[] worldYValues;
-    protected final double[] screenXValues;
-    protected final double[] screenYValues;
+    protected int vertexCount;
+    protected double[] worldXValues;
+    protected double[] worldYValues;
+    protected double[] screenXValues;
+    protected double[] screenYValues;
 
     public Selectable(double[] worldXValues, double[] worldYValues)
     {

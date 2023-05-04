@@ -4,10 +4,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import org.dyn4j.dynamics.Body;
-import org.dyn4j.geometry.Convex;
-import org.dyn4j.geometry.Geometry;
-import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Vector2;
+import org.dyn4j.geometry.*;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
 import tablock.core.Simulation;
@@ -17,6 +14,8 @@ import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class PlayScreen implements GameState
@@ -79,10 +78,26 @@ public class PlayScreen implements GameState
             for(int i = 0; i < xValues.length; i++)
                 vertices[i] = new Vector2(xValues[i], -yValues[i]);
 
-            List<Convex> fixtures = sweepLine.decompose(vertices);
+            if(vertices.length > 3)
+            {
+                List<Convex> fixtures = sweepLine.decompose(vertices);
 
-            for(Convex fixture : fixtures)
-                body.addFixture(fixture);
+                for(Convex fixture : fixtures)
+                    body.addFixture(fixture);
+            }
+            else
+            {
+                try
+                {
+                    body.addFixture(new Polygon(vertices));
+                }
+                catch (IllegalArgumentException exception)
+                {
+                    Collections.reverse(Arrays.asList(vertices));
+
+                    body.addFixture(new Polygon(vertices));
+                }
+            }
 
             body.setMass(MassType.INFINITE);
 

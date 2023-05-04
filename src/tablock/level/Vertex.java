@@ -14,7 +14,7 @@ public class Vertex extends Selectable
     @Serial
     private static final long serialVersionUID = -7071404509826592462L;
     private static final Image VERTEX_TEXTURE = Main.getTexture("vertex");
-    protected final int index;
+    protected int index;
 
     public Vertex(double worldX, double worldY, int index)
     {
