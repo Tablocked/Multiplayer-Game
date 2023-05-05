@@ -63,7 +63,7 @@ public class CreateScreen implements GameState
         {
             if(!paused)
             {
-                double scaleFactor = scrollEvent.getDeltaY() > 0 ? 1.05 : 0.95;
+                double scaleFactor = scrollEvent.getDeltaY() > 0 || scrollEvent.getDeltaX() > 0 ? 1.05 : 0.95;
                 double xOffset = scrollEvent.getX() - offset.getX();
                 double yOffset = scrollEvent.getY() - offset.getY();
 
@@ -164,7 +164,7 @@ public class CreateScreen implements GameState
 
         objectSelector.calculateHoveredObjects(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
-        objectSelector.render(objectsAreSelectable, offset, scale, worldMouse, gc);
+        objectSelector.render(gc);
 
         if(complexPolygonAlertTime != 0)
         {

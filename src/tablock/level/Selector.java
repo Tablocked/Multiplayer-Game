@@ -17,6 +17,7 @@ public class Selector<T extends Selectable>
     private Point2D mousePositionDuringDragStart;
     private boolean objectWasJustSelected;
     private boolean objectWasNeverMoved = true;
+    private boolean verticesWereNeverSelected = true;
     private final List<T> objects;
     private final List<T> hoveredObjects = new ArrayList<>();
     private final List<T> selectedObjects = new ArrayList<>();
@@ -76,12 +77,11 @@ public class Selector<T extends Selectable>
             }
         }
 
-        if(Input.MOUSE_LEFT.wasJustActivated() && objectBeingClicked == null && (vertexSelector == null || vertexSelector.objectBeingClicked == null) && objectsAreSelectable)
+        if(Input.MOUSE_LEFT.wasJustActivated() && vertexSelector != null && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable)
         {
             selectedObjects.clear();
 
-            if(vertexSelector != null)
-                vertexSelector.objects.clear();
+            resetVertexSelector();
         }
     }
 
@@ -94,6 +94,9 @@ public class Selector<T extends Selectable>
 
             if(mousePositionDuringDragStart.distance(worldMouse) != 0)
                 objectWasNeverMoved = false;
+
+            if(vertexSelector != null && vertexSelector.selectedObjects.size() != 0)
+                verticesWereNeverSelected = false;
 
             if(!Input.isShiftPressed())
             {
@@ -133,7 +136,7 @@ public class Selector<T extends Selectable>
 
                     hoveredObjects.add(objectBeingClicked);
                 }
-                else if(!objectWasJustSelected && objectWasNeverMoved)
+                else if(!objectWasJustSelected && objectWasNeverMoved && verticesWereNeverSelected)
                     selectedObjects.remove(objectBeingClicked);
             }
 
@@ -226,6 +229,7 @@ public class Selector<T extends Selectable>
         {
             objectWasJustSelected = false;
             objectWasNeverMoved = true;
+            verticesWereNeverSelected = true;
             objectBeingClicked = null;
             mousePositionDuringDragStart = null;
         }
@@ -236,12 +240,12 @@ public class Selector<T extends Selectable>
             {
                 objects.removeAll(selectedObjects);
                 hoveredObjects.removeAll(selectedObjects);
-                complexPlatforms.removeIf(selectedObjects::contains);
+                complexPlatforms.removeAll(selectedObjects);
                 selectedObjects.clear();
 
                 resetVertexSelector();
             }
-            else if(selectedObjects.size() == 1 && vertexSelector.objects.size() > 3)
+            else if(selectedObjects.size() == 1 && vertexSelector.objects.size() - vertexSelector.selectedObjects.size() > 2)
             {
                 Selectable object = selectedObjects.get(0);
 
@@ -274,7 +278,7 @@ public class Selector<T extends Selectable>
         }
     }
 
-    public void render(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse, GraphicsContext gc)
+    public void render(GraphicsContext gc)
     {
         T lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
 
@@ -288,7 +292,7 @@ public class Selector<T extends Selectable>
             selectedObject.renderOutline(selectedObject == lastHoveredObject, true, gc);
 
         if(vertexSelector != null)
-            vertexSelector.render(objectsAreSelectable, offset, scale, worldMouse, gc);
+            vertexSelector.render(gc);
     }
 
     public boolean isAnObjectBeingClicked()
