@@ -2,10 +2,13 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Vector2;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
+import tablock.core.Main;
+import tablock.core.VectorUtilities;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,6 +21,7 @@ public class Selector<T extends Selectable>
     private boolean objectWasJustSelected;
     private boolean objectWasNeverMoved = true;
     private boolean verticesWereNeverSelected = true;
+    private Vector2 addVertexIndicatorPosition;
     private final List<T> objects;
     private final List<T> hoveredObjects = new ArrayList<>();
     private final List<T> selectedObjects = new ArrayList<>();
@@ -85,7 +89,7 @@ public class Selector<T extends Selectable>
         }
     }
 
-    public void tick(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse)
+    public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse)
     {
         if(objectBeingClicked != null && mousePositionDuringDragStart != null)
         {
@@ -148,7 +152,7 @@ public class Selector<T extends Selectable>
 
                 for(int i = 0; i < lastSelectedObject.vertexCount; i++)
                 {
-                    Vertex vertex = new Vertex(lastSelectedObject.worldXValues[i], lastSelectedObject.worldYValues[i], i);
+                    Vertex vertex = new Vertex(lastSelectedObject.worldXValues[i], lastSelectedObject.worldYValues[i]);
 
                     vertex.updateScreenValues(offset, scale);
 
@@ -165,14 +169,49 @@ public class Selector<T extends Selectable>
             boolean successfulDecomposition;
             boolean successfulPolygon;
 
-            vertexSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
+            addVertexIndicatorPosition = null;
 
-            for(Vertex vertex : vertexSelector.objects)
+            if(vertexSelector.hoveredObjects.size() == 0)
+                for(int i = 0; i < platform.vertexCount; i++)
+                {
+                    int endPointIndex = (i + 1) % platform.vertexCount;
+                    Vector2 startPoint = new Vector2(platform.screenXValues[i], platform.screenYValues[i]);
+                    Vector2 endPoint = new Vector2(platform.screenXValues[endPointIndex], platform.screenYValues[endPointIndex]);
+                    Vector2 screenMouse = new Vector2(Input.getMousePosition().getX(), Input.getMousePosition().getY());
+                    Vector2 screenMouseProjection = VectorUtilities.projectPointOntoLine(startPoint, endPoint, screenMouse);
+
+                    if(VectorUtilities.isProjectionOnLineSegment(screenMouseProjection, startPoint, endPoint) && screenMouseProjection.distance(screenMouse) < 20)
+                    {
+                        Point2D worldMouseProjection = offset.subtract(screenMouseProjection.x, screenMouseProjection.y).multiply(-1 / scale);
+
+                        if(Input.MOUSE_LEFT.wasJustActivated())
+                        {
+                            vertexSelector.objects.add(endPointIndex, new Vertex(worldMouseProjection.getX(), worldMouseProjection.getY(), screenMouseProjection.x, screenMouseProjection.y));
+
+                            platform.vertexCount += 1;
+
+                            platform.worldXValues = new double[platform.vertexCount];
+                            platform.worldYValues = new double[platform.vertexCount];
+                            platform.screenXValues = new double[platform.vertexCount];
+                            platform.screenYValues = new double[platform.vertexCount];
+                        }
+                        else
+                            addVertexIndicatorPosition = screenMouseProjection;
+
+                        break;
+                    }
+                }
+
+            vertexSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
+
+            for(int i = 0; i < vertexSelector.objects.size(); i++)
             {
-                platform.worldXValues[vertex.index] = vertex.worldXValues[0];
-                platform.worldYValues[vertex.index] = vertex.worldYValues[0];
-                platform.screenXValues[vertex.index] = vertex.screenXValues[0];
-                platform.screenYValues[vertex.index] = vertex.screenYValues[0];
+                Vertex vertex = vertexSelector.objects.get(i);
+
+                platform.worldXValues[i] = vertex.worldXValues[0];
+                platform.worldYValues[i] = vertex.worldYValues[0];
+                platform.screenXValues[i] = vertex.screenXValues[0];
+                platform.screenYValues[i] = vertex.screenYValues[0];
 
                 vertices.add(new Vector2(vertex.worldXValues[0], vertex.worldYValues[0]));
             }
@@ -267,8 +306,6 @@ public class Selector<T extends Selectable>
                 {
                     Vertex vertex = vertexSelector.objects.get(i);
 
-                    vertex.index = i;
-
                     object.worldXValues[i] = vertex.worldXValues[0];
                     object.worldYValues[i] = vertex.worldYValues[0];
                     object.screenXValues[i] = vertex.screenXValues[0];
@@ -291,8 +328,17 @@ public class Selector<T extends Selectable>
         for(Selectable selectedObject : selectedObjects)
             selectedObject.renderOutline(selectedObject == lastHoveredObject, true, gc);
 
-        if(vertexSelector != null)
+        if(vertexSelector != null && selectedObjects.size() == 1)
+        {
+            if(addVertexIndicatorPosition != null)
+            {
+                gc.drawImage(Main.ADD_VERTEX_TEXTURE, addVertexIndicatorPosition.x - 12.5, addVertexIndicatorPosition.y - 12.5);
+                gc.setFill(Color.rgb(255, 200, 0, 0.5));
+                gc.fillOval(addVertexIndicatorPosition.x - 15, addVertexIndicatorPosition.y - 15, 30, 30);
+            }
+
             vertexSelector.render(gc);
+        }
     }
 
     public boolean isAnObjectBeingClicked()

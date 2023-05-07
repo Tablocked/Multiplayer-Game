@@ -1,7 +1,6 @@
 package tablock.level;
 
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import tablock.core.Input;
@@ -13,14 +12,18 @@ public class Vertex extends Selectable
 {
     @Serial
     private static final long serialVersionUID = -7071404509826592462L;
-    private static final Image VERTEX_TEXTURE = Main.getTexture("vertex");
-    protected int index;
 
-    public Vertex(double worldX, double worldY, int index)
+    public Vertex(double worldX, double worldY)
+    {
+        super(new double[]{worldX}, new double[]{worldY});
+    }
+
+    public Vertex(double worldX, double worldY, double screenX, double screenY)
     {
         super(new double[]{worldX}, new double[]{worldY});
 
-        this.index = index;
+        screenXValues[0] = screenX;
+        screenYValues[0] = screenY;
     }
 
     @Override
@@ -32,9 +35,9 @@ public class Vertex extends Selectable
     @Override
     public void renderObject(GraphicsContext gc)
     {
-        gc.setFill(Color.BLACK);
+        gc.setFill(Color.rgb(255, 200, 0));
         gc.fillOval(screenXValues[0] - 15, screenYValues[0] - 15, 30, 30);
-        gc.drawImage(VERTEX_TEXTURE, screenXValues[0] - 12.5, screenYValues[0] - 12.5);
+        gc.drawImage(Main.VERTEX_TEXTURE, screenXValues[0] - 12.5, screenYValues[0] - 12.5);
     }
 
     @Override

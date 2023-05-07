@@ -2,7 +2,6 @@ package tablock.gameState;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import tablock.core.Input;
 import tablock.core.Main;
@@ -16,9 +15,8 @@ import tablock.userInterface.TextButton;
 
 public class CreateScreen implements GameState
 {
-    private static final Image WARNING_TEXTURE = Main.getTexture("warning");
     private boolean paused = false;
-    private Point2D offset = new Point2D(960, 1080);
+    private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
     private Point2D offsetDuringDragStart;
     private Point2D objectPlacementStart;
@@ -30,7 +28,7 @@ public class CreateScreen implements GameState
     private double timeDuringPreviousFrame = 0;
     private final Level level;
     private final Selector<Platform> objectSelector;
-    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchToPlayScreen(0, 600), "Play from start");
+    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchToPlayScreen(0, 0), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> switchToPlayScreen(-worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
     private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
@@ -94,16 +92,6 @@ public class CreateScreen implements GameState
         }
     }
 
-    private Point2D getWorldPoint(Point2D screenPoint)
-    {
-        return offset.subtract(screenPoint).multiply(1 / scale);
-    }
-
-    private Point2D getWorldMouse()
-    {
-        return getWorldPoint(Input.getMousePosition());
-    }
-
     private Point2D getScreenPoint(Point2D worldPoint)
     {
         return worldPoint.multiply(-scale).add(offset);
@@ -112,8 +100,9 @@ public class CreateScreen implements GameState
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
-        Point2D worldMouse = getWorldMouse();
+        Point2D worldMouse = offset.subtract(Input.getMousePosition()).multiply(1 / scale);
         Point2D screenMouse = Input.getMousePosition();
+        Point2D screenStartPoint = getScreenPoint(new Point2D(0, 0));
 
         if(Input.PAUSE.wasJustActivated())
         {
@@ -163,7 +152,7 @@ public class CreateScreen implements GameState
         boolean objectsAreSelectable = !paused && objectPlacementStart == null && (currentInterface.areNoButtonsSelected() || anObjectBeingClicked);
 
         objectSelector.calculateHoveredObjects(objectsAreSelectable, offset, scale, worldMouse);
-        objectSelector.tick(objectsAreSelectable, offset, scale, worldMouse);
+        objectSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.render(gc);
 
         if(complexPolygonAlertTime != 0)
@@ -214,11 +203,13 @@ public class CreateScreen implements GameState
             }
         }
 
+        gc.drawImage(Main.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
+
         for(Platform platform : objectSelector.getComplexPlatforms())
         {
             Point2D center = platform.getScreenCenter();
 
-            gc.drawImage(WARNING_TEXTURE, center.getX() - 25, center.getY() - 25);
+            gc.drawImage(Main.WARNING_TEXTURE, center.getX() - 25, center.getY() - 25);
         }
 
         if(interfaceOpen)
@@ -229,11 +220,12 @@ public class CreateScreen implements GameState
 
             gc.setFill(Color.rgb(255, 0, 0, 0.5));
 
-            if(objectSelector.getComplexPlatforms().size() == 0)
-                if(playFromStartButton.isSelected())
-                    gc.fillRect(offset.getX() - hologramOffset, offset.getY() + (-600 * scale) - hologramOffset, hologramLength, hologramLength);
-                else if(playFromHereButton.isSelected())
-                    gc.fillRect(screenInterfacePosition.getX() - hologramOffset, screenInterfacePosition.getY() - hologramOffset, hologramLength, hologramLength);
+            if(objectSelector.getComplexPlatforms().size() == 0 && (playFromStartButton.isSelected() || playFromHereButton.isSelected()))
+            {
+                Point2D hologramPosition = (playFromStartButton.isSelected() ? screenStartPoint : screenInterfacePosition).subtract(hologramOffset, hologramOffset);
+
+                gc.fillRect(hologramPosition.getX(), hologramPosition.getY(), hologramLength, hologramLength);
+            }
 
             platformButton.setForceHighlighted(platformMode);
 
@@ -242,8 +234,8 @@ public class CreateScreen implements GameState
 
             if(objectSelector.getComplexPlatforms().size() != 0 && currentInterface == mainInterface)
             {
-                gc.drawImage(WARNING_TEXTURE, playFromStartButton.getX(), playFromStartButton.getY());
-                gc.drawImage(WARNING_TEXTURE, playFromHereButton.getX(), playFromHereButton.getY());
+                gc.drawImage(Main.WARNING_TEXTURE, playFromStartButton.getX(), playFromStartButton.getY());
+                gc.drawImage(Main.WARNING_TEXTURE, playFromHereButton.getX(), playFromHereButton.getY());
             }
         }
         else

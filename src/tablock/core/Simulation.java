@@ -162,17 +162,20 @@ public class Simulation extends World<Body>
 						{
 							Vector2 platformVertex1 = objectVertices[j];
 							Vector2 platformVertex2 = objectVertices[(j + 1) % objectVertices.length];
-							Vector2 normal = ((Polygon) objectFixture.getShape()).getNormals()[j];
+							Vector2 projection1 = VectorUtilities.projectPointOntoLine(platformVertex1, platformVertex2, playerVertex1);
+							Vector2 projection2 = VectorUtilities.projectPointOntoLine(platformVertex1, platformVertex2, playerVertex2);
 
-							if(onLineSegment(platformVertex1, platformVertex2, playerVertex1) && onLineSegment(platformVertex1, platformVertex2, playerVertex2))
+							if(projection1.distance(playerVertex1) < 0.1 && projection2.distance(playerVertex2) < 0.1)
 							{
-								jumpVector.add(normal);
-								onGround = true;
-							}
+								Vector2 normal = ((Polygon) objectFixture.getShape()).getNormals()[j];
 
-							if(onLine(platformVertex1, platformVertex2, playerVertex1) && onLine(platformVertex1, platformVertex2, playerVertex1))
-							{
 								movementVector.add(normal.copy().rotate(Math.PI / 2));
+
+								if(VectorUtilities.isProjectionOnLineSegment(projection1, platformVertex1, platformVertex2) && VectorUtilities.isProjectionOnLineSegment(projection2, platformVertex1, platformVertex2))
+								{
+									jumpVector.add(normal);
+									onGround = true;
+								}
 							}
 						}
 					}
@@ -198,28 +201,6 @@ public class Simulation extends World<Body>
 	private Vector2[] getBodyVertices(Body body)
 	{
 		return getFixtureVertices(body, body.getFixture(0));
-	}
-
-	private Vector2 projectOnLine(Vector2 startPoint, Vector2 endPoint, Vector2 point)
-	{
-		Vector2 projectionLine = endPoint.copy().subtract(startPoint);
-		Vector2 projectionPoint = point.copy().subtract(startPoint);
-
-		return projectionPoint.project(projectionLine).add(startPoint);
-	}
-	private boolean onLine(Vector2 startPoint, Vector2 endPoint, Vector2 point)
-	{
-		return projectOnLine(startPoint, endPoint, point).distance(point) < 0.1;
-	}
-	private boolean onLineSegment(Vector2 startPoint, Vector2 endPoint, Vector2 point)
-	{
-		Vector2 projection = projectOnLine(startPoint, endPoint, point);
-		double minX = Math.min(startPoint.x, endPoint.x);
-		double maxX = Math.max(startPoint.x, endPoint.x);
-		double minY = Math.min(startPoint.y, endPoint.y);
-		double maxY = Math.max(startPoint.y, endPoint.y);
-
-		return projection.x >= minX && projection.x <= maxX && projection.y >= minY && projection.y <= maxY && projection.distance(point) < 0.1;
 	}
 
 	public Vector2 getPlayerCenter()
