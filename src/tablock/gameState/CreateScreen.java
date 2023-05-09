@@ -8,10 +8,14 @@ import tablock.core.Main;
 import tablock.level.Level;
 import tablock.level.Platform;
 import tablock.level.Selector;
+import tablock.level.Vertex;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.CircularButtonStrip;
 import tablock.userInterface.ImageButton;
 import tablock.userInterface.TextButton;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CreateScreen implements GameState
 {
@@ -19,13 +23,13 @@ public class CreateScreen implements GameState
     private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
     private Point2D offsetDuringDragStart;
-    private Point2D objectPlacementStart;
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
     private boolean platformMode = false;
     private double complexPolygonAlertTime = 0;
     private double timeDuringPreviousFrame = 0;
+    private final List<Point2D> placedPlatformVertices = new ArrayList<>();
     private final Level level;
     private final Selector<Platform> objectSelector;
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchToPlayScreen(0, 0), "Play from start");
@@ -126,8 +130,8 @@ public class CreateScreen implements GameState
 
             if(Input.MOUSE_RIGHT.wasJustActivated())
             {
-                if(objectPlacementStart != null)
-                    objectPlacementStart = null;
+                if(placedPlatformVertices.size() != 0)
+                    placedPlatformVertices.clear();
                 else if(isScreenPointOffScreen(getScreenPoint(worldInterfacePosition)))
                 {
                     interfaceOpen = true;
@@ -148,8 +152,7 @@ public class CreateScreen implements GameState
             }
         }
 
-        boolean anObjectBeingClicked = objectSelector.isAnObjectBeingClicked();
-        boolean objectsAreSelectable = !paused && objectPlacementStart == null && (currentInterface.areNoButtonsSelected() || anObjectBeingClicked);
+        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
 
         objectSelector.calculateHoveredObjects(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
@@ -171,37 +174,100 @@ public class CreateScreen implements GameState
                     platform.renderComplexPolygonAlert(opacity, gc);
         }
 
-        if(paused)
-            objectPlacementStart = null;
-        else if(platformMode && currentInterface.areNoButtonsSelected() && !anObjectBeingClicked && objectSelector.areNoObjectsHovered())
+        if(!paused && platformMode)
         {
-            if(Input.MOUSE_LEFT.wasJustActivated())
-                objectPlacementStart = worldMouse;
+            Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
+            boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
 
-            if(Input.MOUSE_LEFT.isActive() && objectPlacementStart != null)
+            if(currentInterface.areNoButtonsSelected() && !objectSelector.isAnObjectBeingClicked() && objectSelector.areNoObjectsHovered() && Input.MOUSE_LEFT.wasJustActivated())
             {
-                Point2D point1 = getScreenPoint(objectPlacementStart);
-                double[] xValues = {point1.getX(), point1.getX(), screenMouse.getX(), screenMouse.getX()};
-                double[] yValues = {point1.getY(), screenMouse.getY(), screenMouse.getY(), point1.getY()};
+                if(firstVertexBeingHovered)
+                {
+                    if(placedPlatformVertices.size() > 2)
+                    {
+                        double[] worldXValues = new double[placedPlatformVertices.size()];
+                        double[] worldYValues = new double[placedPlatformVertices.size()];
 
-                gc.setStroke(Color.GOLD);
-                gc.setLineWidth(10);
-                gc.setLineDashes(20);
-                gc.strokePolygon(xValues, yValues, 4);
-                gc.setLineDashes(0);
+                        for(int i = 0; i < placedPlatformVertices.size(); i++)
+                        {
+                            Point2D worldVertex = placedPlatformVertices.get(i);
+
+                            worldXValues[i] = -worldVertex.getX();
+                            worldYValues[i] = -worldVertex.getY();
+                        }
+
+                        Platform platform = new Platform(worldXValues, worldYValues);
+
+                        objectSelector.addObject(platform);
+
+                        if(!platform.calculateSimplePolygon())
+                            objectSelector.getComplexPlatforms().add(platform);
+
+                        placedPlatformVertices.clear();
+                    }
+                }
+                else
+                    placedPlatformVertices.add(worldMouse);
             }
-            else if(objectPlacementStart != null && objectPlacementStart.distance(worldMouse) != 0)
+
+            gc.beginPath();
+
+            for(Point2D worldVertex : placedPlatformVertices)
             {
-                Point2D point1 = objectPlacementStart.multiply(-1);
-                Point2D point2 = worldMouse.multiply(-1);
-                Platform platform = new Platform(point1, point2);
+                Point2D screenVertex = getScreenPoint(worldVertex);
 
-                if(point1.getX() != point2.getX() && point1.getY() != point2.getY())
-                    objectSelector.addObject(platform);
-
-                objectPlacementStart = null;
+                gc.lineTo(screenVertex.getX(), screenVertex.getY());
             }
+
+            if(placedPlatformVertices.size() != 0)
+            {
+                worldFirstVertex = placedPlatformVertices.get(0);
+                firstVertexBeingHovered = getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
+
+                Point2D screenFirstVertex = getScreenPoint(worldFirstVertex);
+
+                if(firstVertexBeingHovered)
+                    gc.lineTo(screenFirstVertex.getX(), screenFirstVertex.getY());
+                else
+                    gc.lineTo(screenMouse.getX(), screenMouse.getY());
+            }
+
+            gc.setStroke(Color.GOLD);
+            gc.setLineDashes(20);
+            gc.setLineWidth(10);
+            gc.stroke();
+            gc.closePath();
+
+            if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected())
+                Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
+
+            for(Point2D worldVertex : placedPlatformVertices)
+            {
+                Point2D screenVertex = getScreenPoint(worldVertex);
+
+                gc.setFill(Color.GOLD);
+
+                if(worldVertex == worldFirstVertex)
+                {
+                    gc.fillOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
+                    gc.drawImage(Main.CHECKMARK_TEXTURE, screenVertex.getX() - 15, screenVertex.getY() - 15);
+
+                    if(firstVertexBeingHovered)
+                    {
+                        gc.setStroke(Color.LIGHTGREEN);
+                        gc.setLineDashes(10);
+                        gc.setLineWidth(5);
+                        gc.strokeOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
+                    }
+                }
+                else
+                    gc.fillOval(screenVertex.getX() - 15, screenVertex.getY() - 15, 30, 30);
+            }
+
+            gc.setLineDashes(0);
         }
+        else
+            placedPlatformVertices.clear();
 
         gc.drawImage(Main.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
 
@@ -229,7 +295,7 @@ public class CreateScreen implements GameState
 
             platformButton.setForceHighlighted(platformMode);
 
-            currentInterface.setFrozen(paused || objectPlacementStart != null || anObjectBeingClicked);
+            currentInterface.setFrozen(paused || placedPlatformVertices.size() != 0 || objectSelector.isAnObjectBeingClicked());
             currentInterface.render(screenInterfacePosition.getX(), screenInterfacePosition.getY(), gc);
 
             if(objectSelector.getComplexPlatforms().size() != 0 && currentInterface == mainInterface)

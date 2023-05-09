@@ -26,6 +26,13 @@ public class Vertex extends Selectable
         screenYValues[0] = screenY;
     }
 
+    public static void renderAddVertex(double x, double y, GraphicsContext gc)
+    {
+        gc.drawImage(Main.ADD_VERTEX_TEXTURE, x - 12.5, y - 12.5);
+        gc.setFill(Color.rgb(255, 200, 0, 0.5));
+        gc.fillOval(x - 15, y - 15, 30, 30);
+    }
+
     @Override
     public boolean isHoveredByMouse()
     {

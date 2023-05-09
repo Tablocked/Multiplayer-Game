@@ -2,16 +2,11 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Vector2;
-import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
-import tablock.core.Main;
 import tablock.core.VectorUtilities;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class Selector<T extends Selectable>
@@ -140,7 +135,7 @@ public class Selector<T extends Selectable>
 
                     hoveredObjects.add(objectBeingClicked);
                 }
-                else if(!objectWasJustSelected && objectWasNeverMoved && verticesWereNeverSelected)
+                else if(!objectWasJustSelected && objectWasNeverMoved && verticesWereNeverSelected && addVertexIndicatorPosition == null)
                     selectedObjects.remove(objectBeingClicked);
             }
 
@@ -163,15 +158,11 @@ public class Selector<T extends Selectable>
 
         if(vertexSelector != null && selectedObjects.size() == 1)
         {
-            List<Vector2> vertices = new ArrayList<>();
-            SweepLine sweepLine = new SweepLine();
             Platform platform = (Platform) selectedObjects.get(0);
-            boolean successfulDecomposition;
-            boolean successfulPolygon;
 
             addVertexIndicatorPosition = null;
 
-            if(vertexSelector.hoveredObjects.size() == 0)
+            if(vertexSelector.hoveredObjects.size() == 0 && objectsAreSelectable)
                 for(int i = 0; i < platform.vertexCount; i++)
                 {
                     int endPointIndex = (i + 1) % platform.vertexCount;
@@ -212,56 +203,12 @@ public class Selector<T extends Selectable>
                 platform.worldYValues[i] = vertex.worldYValues[0];
                 platform.screenXValues[i] = vertex.screenXValues[0];
                 platform.screenYValues[i] = vertex.screenYValues[0];
-
-                vertices.add(new Vector2(vertex.worldXValues[0], vertex.worldYValues[0]));
             }
 
-            try
-            {
-                sweepLine.decompose(vertices);
-
-                successfulDecomposition = true;
-            }
-            catch(IllegalArgumentException exception)
-            {
-                successfulDecomposition = false;
-            }
-
-            try
-            {
-                new Polygon(vertices.toArray(new Vector2[0]));
-
-                successfulPolygon = true;
-            }
-            catch(IllegalArgumentException exception1)
-            {
-                try
-                {
-                    Collections.reverse(vertices);
-
-                    new Polygon(vertices.toArray(new Vector2[0]));
-
-                    successfulPolygon = true;
-                }
-                catch(IllegalArgumentException exception2)
-                {
-                    successfulPolygon = false;
-                }
-            }
-
-            if(successfulDecomposition || successfulPolygon)
-            {
-                platform.setSimplePolygon(true);
-
+            if(platform.calculateSimplePolygon())
                 complexPlatforms.remove(platform);
-            }
-            else
-            {
-                platform.setSimplePolygon(false);
-
-                if(!complexPlatforms.contains(platform))
+            else if(!complexPlatforms.contains(platform))
                     complexPlatforms.add(platform);
-            }
         }
 
         if(!Input.MOUSE_LEFT.isActive() || !objectsAreSelectable)
@@ -331,11 +278,7 @@ public class Selector<T extends Selectable>
         if(vertexSelector != null && selectedObjects.size() == 1)
         {
             if(addVertexIndicatorPosition != null)
-            {
-                gc.drawImage(Main.ADD_VERTEX_TEXTURE, addVertexIndicatorPosition.x - 12.5, addVertexIndicatorPosition.y - 12.5);
-                gc.setFill(Color.rgb(255, 200, 0, 0.5));
-                gc.fillOval(addVertexIndicatorPosition.x - 15, addVertexIndicatorPosition.y - 15, 30, 30);
-            }
+                Vertex.renderAddVertex(addVertexIndicatorPosition.x, addVertexIndicatorPosition.y, gc);
 
             vertexSelector.render(gc);
         }
@@ -348,7 +291,7 @@ public class Selector<T extends Selectable>
 
     public boolean areNoObjectsHovered()
     {
-        return hoveredObjects.size() == 0 && (vertexSelector == null || vertexSelector.areNoObjectsHovered());
+        return hoveredObjects.size() == 0 && addVertexIndicatorPosition == null && (vertexSelector == null || vertexSelector.areNoObjectsHovered());
     }
 
     public List<Platform> getComplexPlatforms()

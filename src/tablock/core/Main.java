@@ -20,6 +20,7 @@ public class Main extends Application
 	public static final Image START_POINT_TEXTURE = getTexture("startPoint");
 	public static final Image VERTEX_TEXTURE = getTexture("vertex");
 	public static final Image ADD_VERTEX_TEXTURE = getTexture("addVertex");
+	public static final Image CHECKMARK_TEXTURE = getTexture("checkmark");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 
 	public static void main(String[] args)

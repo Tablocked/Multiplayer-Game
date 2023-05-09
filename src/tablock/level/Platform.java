@@ -14,9 +14,38 @@ public class Platform extends Selectable
     private static final long serialVersionUID = 7944900121369452854L;
     private boolean simplePolygon = true;
 
-    public Platform(Point2D point1, Point2D point2)
+    public Platform(double[] worldXValues, double[] worldYValues)
     {
-        super(new double[]{point1.getX(), point1.getX(), point2.getX(), point2.getX()}, new double[]{point1.getY(), point2.getY(), point2.getY(), point1.getY()});
+        super(worldXValues,worldYValues);
+    }
+
+    public boolean calculateSimplePolygon()
+    {
+        simplePolygon = true;
+
+        for(int i = 0; i < vertexCount; i++)
+        {
+            double x1 = worldXValues[i];
+            double y1 = worldYValues[i];
+            double x2 = worldXValues[(i + 1) % vertexCount];
+            double y2 = worldYValues[(i + 1) % vertexCount];
+
+            for(int j = 0; j < vertexCount && simplePolygon; j++)
+            {
+                double x3 = worldXValues[j];
+                double y3 = worldYValues[j];
+                double x4 = worldXValues[(j + 1) % vertexCount];
+                double y4 = worldYValues[(j + 1) % vertexCount];
+                double a = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
+                double t = (((x1 - x3) * (y3 - y4)) - ((y1 - y3) * (x3 - x4))) / a;
+                double u = (((x1 - x3) * (y1 - y2)) - ((y1 - y3) * (x1 - x2))) / a;
+
+                if(t < 1 && t > 0 && u < 1 && u > 0)
+                    simplePolygon = false;
+            }
+        }
+
+        return simplePolygon;
     }
 
     @Override
@@ -55,11 +84,6 @@ public class Platform extends Selectable
     {
         gc.setFill(Color.rgb(255, 255, 0, opacity));
         gc.fillPolygon(screenXValues, screenYValues, vertexCount);
-    }
-
-    public void setSimplePolygon(boolean simplePolygon)
-    {
-        this.simplePolygon = simplePolygon;
     }
 
     public Point2D getScreenCenter()

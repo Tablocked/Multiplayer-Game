@@ -14,8 +14,6 @@ import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class PlayScreen implements GameState
@@ -80,23 +78,17 @@ public class PlayScreen implements GameState
 
             if(vertices.length > 3)
             {
-                List<Convex> fixtures = sweepLine.decompose(vertices);
+                List<Triangle> fixtures = sweepLine.triangulate(vertices);
 
-                for(Convex fixture : fixtures)
+                for(Triangle fixture : fixtures)
                     body.addFixture(fixture);
             }
             else
             {
-                try
-                {
-                    body.addFixture(new Polygon(vertices));
-                }
-                catch (IllegalArgumentException exception)
-                {
-                    Collections.reverse(Arrays.asList(vertices));
+                if(Geometry.getWinding(vertices) < 0)
+                    Geometry.reverseWinding(vertices);
 
-                    body.addFixture(new Polygon(vertices));
-                }
+                body.addFixture(new Polygon(vertices));
             }
 
             body.setMass(MassType.INFINITE);
