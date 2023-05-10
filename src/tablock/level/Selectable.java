@@ -2,6 +2,7 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.shape.Shape;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -33,7 +34,7 @@ public abstract class Selectable implements Serializable
         screenYValues[index] = (worldYValues[index] * scale) + offset.getY();
     }
 
-    public abstract boolean isHoveredByMouse();
+    public abstract Shape getShape();
     public abstract void renderObject(GraphicsContext gc);
     public abstract void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc);
 

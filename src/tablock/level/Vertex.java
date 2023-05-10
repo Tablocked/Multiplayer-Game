@@ -3,7 +3,7 @@ package tablock.level;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import tablock.core.Input;
+import javafx.scene.shape.Shape;
 import tablock.core.Main;
 
 import java.io.Serial;
@@ -34,9 +34,9 @@ public class Vertex extends Selectable
     }
 
     @Override
-    public boolean isHoveredByMouse()
+    public Shape getShape()
     {
-        return new Circle(screenXValues[0], screenYValues[0], 12.5).contains(Input.getMousePosition());
+        return new Circle(screenXValues[0], screenYValues[0], 12.5);
     }
 
     @Override

@@ -14,6 +14,7 @@ import org.dyn4j.world.listener.StepListenerAdapter;
 public class Simulation extends World<Body>
 {
 	private Vector2 jumpVector = new Vector2(0,0);
+	private Vector2 previousJumpVector;
 	private Vector2 movementVector = new Vector2(0, 0);
 	private double previousJumpAngle = -1;
 	private double previousPlayerAngle = -1;
@@ -44,6 +45,8 @@ public class Simulation extends World<Body>
 			{
 				jumpVector.normalize();
 				movementVector.normalize();
+
+				previousJumpVector = jumpVector.copy();
 
 				if(movementVector.x == 0 && movementVector.y == 0)
 				{
@@ -106,7 +109,7 @@ public class Simulation extends World<Body>
 						jumpStart = Double.MAX_VALUE;
 					}
 
-					if(Input.JUMP.isActive())
+					if(Input.JUMP.isActive() && jumpVector.equals(previousJumpVector))
 					{
 						if(!isHoldingSpace)
 							jumpStart = System.nanoTime();
@@ -133,6 +136,7 @@ public class Simulation extends World<Body>
 				}
 
 				isHoldingSpace = Input.JUMP.isActive();
+				previousJumpVector = jumpVector.copy();
 			}
 		});
 
@@ -173,7 +177,7 @@ public class Simulation extends World<Body>
 
 								if(VectorUtilities.isProjectionOnLineSegment(projection1, platformVertex1, platformVertex2) && VectorUtilities.isProjectionOnLineSegment(projection2, platformVertex1, platformVertex2))
 								{
-									jumpVector.add(normal);
+									jumpVector.add(projection2.subtract(projection1).rotate(Math.PI / 2));
 									onGround = true;
 								}
 							}

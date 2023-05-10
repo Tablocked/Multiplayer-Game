@@ -23,6 +23,7 @@ public class CreateScreen implements GameState
     private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
     private Point2D offsetDuringDragStart;
+    private Point2D mousePositionDuringSelectionStart;
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
@@ -152,9 +153,10 @@ public class CreateScreen implements GameState
             }
         }
 
-        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
+        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
+        boolean wereNoObjectsHovered = objectSelector.areNoObjectsHovered();
 
-        objectSelector.calculateHoveredObjects(objectsAreSelectable, offset, scale, worldMouse);
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, mousePositionDuringSelectionStart == null, scale, worldMouse, offset);
         objectSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.render(gc);
 
@@ -174,100 +176,135 @@ public class CreateScreen implements GameState
                     platform.renderComplexPolygonAlert(opacity, gc);
         }
 
-        if(!paused && platformMode)
+        if(!paused)
         {
-            Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
-            boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
-
-            if(currentInterface.areNoButtonsSelected() && !objectSelector.isAnObjectBeingClicked() && objectSelector.areNoObjectsHovered() && Input.MOUSE_LEFT.wasJustActivated())
+            if(platformMode && !Input.isShiftPressed())
             {
-                if(firstVertexBeingHovered)
-                {
-                    if(placedPlatformVertices.size() > 2)
-                    {
-                        double[] worldXValues = new double[placedPlatformVertices.size()];
-                        double[] worldYValues = new double[placedPlatformVertices.size()];
+                Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
+                boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
 
-                        for(int i = 0; i < placedPlatformVertices.size(); i++)
-                        {
-                            Point2D worldVertex = placedPlatformVertices.get(i);
-
-                            worldXValues[i] = -worldVertex.getX();
-                            worldYValues[i] = -worldVertex.getY();
-                        }
-
-                        Platform platform = new Platform(worldXValues, worldYValues);
-
-                        objectSelector.addObject(platform);
-
-                        if(!platform.calculateSimplePolygon())
-                            objectSelector.getComplexPlatforms().add(platform);
-
-                        placedPlatformVertices.clear();
-                    }
-                }
-                else
-                    placedPlatformVertices.add(worldMouse);
-            }
-
-            gc.beginPath();
-
-            for(Point2D worldVertex : placedPlatformVertices)
-            {
-                Point2D screenVertex = getScreenPoint(worldVertex);
-
-                gc.lineTo(screenVertex.getX(), screenVertex.getY());
-            }
-
-            if(placedPlatformVertices.size() != 0)
-            {
-                worldFirstVertex = placedPlatformVertices.get(0);
-                firstVertexBeingHovered = getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
-
-                Point2D screenFirstVertex = getScreenPoint(worldFirstVertex);
-
-                if(firstVertexBeingHovered)
-                    gc.lineTo(screenFirstVertex.getX(), screenFirstVertex.getY());
-                else
-                    gc.lineTo(screenMouse.getX(), screenMouse.getY());
-            }
-
-            gc.setStroke(Color.GOLD);
-            gc.setLineDashes(20);
-            gc.setLineWidth(10);
-            gc.stroke();
-            gc.closePath();
-
-            if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected())
-                Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
-
-            for(Point2D worldVertex : placedPlatformVertices)
-            {
-                Point2D screenVertex = getScreenPoint(worldVertex);
-
-                gc.setFill(Color.GOLD);
-
-                if(worldVertex == worldFirstVertex)
-                {
-                    gc.fillOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
-                    gc.drawImage(Main.CHECKMARK_TEXTURE, screenVertex.getX() - 15, screenVertex.getY() - 15);
-
+                if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !objectSelector.isAnObjectBeingClicked() && wereNoObjectsHovered)
                     if(firstVertexBeingHovered)
                     {
-                        gc.setStroke(Color.LIGHTGREEN);
-                        gc.setLineDashes(10);
-                        gc.setLineWidth(5);
-                        gc.strokeOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
+                        if(placedPlatformVertices.size() > 2)
+                        {
+                            double[] worldXValues = new double[placedPlatformVertices.size()];
+                            double[] worldYValues = new double[placedPlatformVertices.size()];
+
+                            for(int i = 0; i < placedPlatformVertices.size(); i++)
+                            {
+                                Point2D worldVertex = placedPlatformVertices.get(i);
+
+                                worldXValues[i] = -worldVertex.getX();
+                                worldYValues[i] = -worldVertex.getY();
+                            }
+
+                            Platform platform = new Platform(worldXValues, worldYValues);
+
+                            objectSelector.addObject(platform);
+
+                            if(!platform.calculateSimplePolygon())
+                                objectSelector.getComplexPlatforms().add(platform);
+
+                            placedPlatformVertices.clear();
+                        }
+                    }
+                    else
+                        placedPlatformVertices.add(worldMouse);
+
+                gc.beginPath();
+
+                for(Point2D worldVertex : placedPlatformVertices)
+                {
+                    Point2D screenVertex = getScreenPoint(worldVertex);
+
+                    gc.lineTo(screenVertex.getX(), screenVertex.getY());
+                }
+
+                if(placedPlatformVertices.size() != 0)
+                {
+                    worldFirstVertex = placedPlatformVertices.get(0);
+                    firstVertexBeingHovered = getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
+
+                    Point2D screenFirstVertex = getScreenPoint(worldFirstVertex);
+
+                    if(firstVertexBeingHovered)
+                        gc.lineTo(screenFirstVertex.getX(), screenFirstVertex.getY());
+                    else
+                        gc.lineTo(screenMouse.getX(), screenMouse.getY());
+                }
+
+                gc.setStroke(Color.GOLD);
+                gc.setLineDashes(20);
+                gc.setLineWidth(10);
+                gc.stroke();
+                gc.closePath();
+
+                if(!firstVertexBeingHovered && wereNoObjectsHovered && currentInterface.areNoButtonsSelected())
+                    Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
+
+                for(Point2D worldVertex : placedPlatformVertices)
+                {
+                    Point2D screenVertex = getScreenPoint(worldVertex);
+
+                    gc.setFill(Color.GOLD);
+
+                    if(worldVertex == worldFirstVertex)
+                    {
+                        gc.fillOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
+                        gc.drawImage(Main.CHECKMARK_TEXTURE, screenVertex.getX() - 15, screenVertex.getY() - 15);
+
+                        if(firstVertexBeingHovered)
+                        {
+                            gc.setStroke(Color.LIGHTGREEN);
+                            gc.setLineDashes(10);
+                            gc.setLineWidth(5);
+                            gc.strokeOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
+                        }
+                    }
+                    else
+                        gc.fillOval(screenVertex.getX() - 15, screenVertex.getY() - 15, 30, 30);
+                }
+
+                gc.setLineDashes(0);
+            }
+            else
+            {
+                if(Input.MOUSE_LEFT.wasJustActivated() && objectSelector.areNoObjectsHovered())
+                    mousePositionDuringSelectionStart = worldMouse;
+
+                if(mousePositionDuringSelectionStart != null)
+                {
+                    Point2D startPoint = getScreenPoint(mousePositionDuringSelectionStart);
+                    Point2D dimensions = screenMouse.subtract(startPoint);
+                    double x = dimensions.getX() > 0 ? startPoint.getX() : startPoint.getX() + dimensions.getX();
+                    double y = dimensions.getY() > 0 ? startPoint.getY() : startPoint.getY() + dimensions.getY();
+                    double width = Math.abs(dimensions.getX());
+                    double height = Math.abs(dimensions.getY());
+
+                    if(Input.MOUSE_LEFT.isActive())
+                    {
+                        gc.setStroke(Color.rgb(0, 255, 0, 0.5));
+                        gc.setLineDashes(20);
+                        gc.setLineWidth(10);
+                        gc.strokeRect(x, y, width, height);
+                        gc.setLineDashes(0);
+                    }
+                    else
+                    {
+                        mousePositionDuringSelectionStart = null;
+
+                        objectSelector.selectAllObjectsIntersectingRectangle(x, y, width, height);
                     }
                 }
-                else
-                    gc.fillOval(screenVertex.getX() - 15, screenVertex.getY() - 15, 30, 30);
             }
-
-            gc.setLineDashes(0);
         }
         else
+        {
             placedPlatformVertices.clear();
+
+            mousePositionDuringSelectionStart = null;
+        }
 
         gc.drawImage(Main.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
 

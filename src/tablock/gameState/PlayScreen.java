@@ -187,6 +187,28 @@ public class PlayScreen implements GameState
 
         level.render(new Point2D(offsetX, offsetY), 1, gc);
 
+//        for(Body body : simulation.getBodies())
+//        {
+//            for(Fixture fixture : body.getFixtures())
+//            {
+//                gc.beginPath();
+//
+//                for(Vector2 vertex : ((Polygon) fixture.getShape()).getVertices())
+//                    gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
+//
+//                Vector2 vertex = ((Polygon) fixture.getShape()).getVertices()[0];
+//
+//                gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
+//
+//                gc.setFill(Color.DARKRED);
+//                gc.setStroke(Color.BLACK);
+//                gc.setLineWidth(1);
+//                gc.fill();
+//                gc.stroke();
+//                gc.closePath();
+//            }
+//        }
+
         if(paused)
         {
             gc.setFill(Color.rgb(255, 255, 255, 0.5));

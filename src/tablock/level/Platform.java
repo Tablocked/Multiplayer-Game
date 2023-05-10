@@ -4,7 +4,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
-import tablock.core.Input;
+import javafx.scene.shape.Shape;
 
 import java.io.Serial;
 
@@ -49,14 +49,14 @@ public class Platform extends Selectable
     }
 
     @Override
-    public boolean isHoveredByMouse()
+    public Shape getShape()
     {
         Polygon polygon = new Polygon();
 
         for(int i = 0; i < vertexCount; i++)
             polygon.getPoints().addAll(screenXValues[i], screenYValues[i]);
 
-        return polygon.contains(Input.getMousePosition());
+        return polygon;
     }
 
     @Override
