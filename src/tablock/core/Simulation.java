@@ -86,12 +86,12 @@ public class Simulation extends World<Body>
 				{
 					if(Input.LEFT.isActive())
 					{
-						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * 20000));
+						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * -20000));
 					}
 
 					if(Input.RIGHT.isActive())
 					{
-						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * -20000));
+						Simulation.this.player.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * 20000));
 					}
 				}
 
@@ -171,13 +171,13 @@ public class Simulation extends World<Body>
 
 							if(projection1.distance(playerVertex1) < 0.1 && projection2.distance(playerVertex2) < 0.1)
 							{
-								Vector2 normal = ((Polygon) objectFixture.getShape()).getNormals()[j];
+								Vector2 vector = projection2.copy().subtract(projection1);
 
-								movementVector.add(normal.copy().rotate(Math.PI / 2));
+								movementVector.add(vector);
 
 								if(VectorUtilities.isProjectionOnLineSegment(projection1, platformVertex1, platformVertex2) && VectorUtilities.isProjectionOnLineSegment(projection2, platformVertex1, platformVertex2))
 								{
-									jumpVector.add(projection2.subtract(projection1).rotate(Math.PI / 2));
+									jumpVector.add(vector.copy().rotate(Math.PI / 2));
 									onGround = true;
 								}
 							}

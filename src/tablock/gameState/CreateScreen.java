@@ -22,8 +22,8 @@ public class CreateScreen implements GameState
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
-    private Point2D offsetDuringDragStart;
     private Point2D mousePositionDuringSelectionStart;
+    private boolean mouseNeverMovedDuringSelection = true;
     private double scale = 1;
     private boolean interfaceOpen = false;
     private Point2D worldInterfacePosition = new Point2D(0, 0);
@@ -121,13 +121,14 @@ public class CreateScreen implements GameState
         if(!paused)
         {
             if(Input.MOUSE_MIDDLE.wasJustActivated())
-            {
                 mousePositionDuringDragStart = screenMouse;
-                offsetDuringDragStart = offset;
-            }
 
             if(Input.MOUSE_MIDDLE.isActive() && mousePositionDuringDragStart != null)
-                offset = offsetDuringDragStart.subtract(mousePositionDuringDragStart.subtract(screenMouse));
+            {
+                offset = offset.add(screenMouse.subtract(mousePositionDuringDragStart));
+
+                mousePositionDuringDragStart = screenMouse;
+            }
 
             if(Input.MOUSE_RIGHT.wasJustActivated())
             {
@@ -153,10 +154,19 @@ public class CreateScreen implements GameState
             }
         }
 
-        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
+        if(!Input.MOUSE_MIDDLE.isActive() || paused)
+            mousePositionDuringDragStart = null;
+
+        if(!paused && (!platformMode || Input.isShiftPressed()) && Input.MOUSE_LEFT.wasJustActivated() && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected())
+            mousePositionDuringSelectionStart = worldMouse;
+
+        if(mousePositionDuringSelectionStart != null && mousePositionDuringSelectionStart.distance(worldMouse) != 0)
+            mouseNeverMovedDuringSelection = false;
+
+        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
         boolean wereNoObjectsHovered = objectSelector.areNoObjectsHovered();
 
-        objectSelector.calculateHoveredObjects(objectsAreSelectable, mousePositionDuringSelectionStart == null, scale, worldMouse, offset);
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, !Input.MOUSE_LEFT.isActive() && mouseNeverMovedDuringSelection && mousePositionDuringSelectionStart != null, scale, worldMouse, offset);
         objectSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
         objectSelector.render(gc);
 
@@ -183,6 +193,8 @@ public class CreateScreen implements GameState
                 Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
                 boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
 
+                mousePositionDuringSelectionStart = null;
+
                 if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !objectSelector.isAnObjectBeingClicked() && wereNoObjectsHovered)
                     if(firstVertexBeingHovered)
                     {
@@ -201,7 +213,7 @@ public class CreateScreen implements GameState
 
                             Platform platform = new Platform(worldXValues, worldYValues);
 
-                            objectSelector.addObject(platform);
+                            objectSelector.addObject(platform, offset, scale);
 
                             if(!platform.calculateSimplePolygon())
                                 objectSelector.getComplexPlatforms().add(platform);
@@ -270,8 +282,7 @@ public class CreateScreen implements GameState
             }
             else
             {
-                if(Input.MOUSE_LEFT.wasJustActivated() && objectSelector.areNoObjectsHovered())
-                    mousePositionDuringSelectionStart = worldMouse;
+                placedPlatformVertices.clear();
 
                 if(mousePositionDuringSelectionStart != null)
                 {
@@ -282,28 +293,27 @@ public class CreateScreen implements GameState
                     double width = Math.abs(dimensions.getX());
                     double height = Math.abs(dimensions.getY());
 
-                    if(Input.MOUSE_LEFT.isActive())
-                    {
-                        gc.setStroke(Color.rgb(0, 255, 0, 0.5));
-                        gc.setLineDashes(20);
-                        gc.setLineWidth(10);
-                        gc.strokeRect(x, y, width, height);
-                        gc.setLineDashes(0);
-                    }
-                    else
-                    {
-                        mousePositionDuringSelectionStart = null;
-
-                        objectSelector.selectAllObjectsIntersectingRectangle(x, y, width, height);
-                    }
+                    if(startPoint.distance(screenMouse) != 0)
+                        if(Input.MOUSE_LEFT.isActive())
+                        {
+                            gc.setStroke(Color.rgb(0, 255, 0, 0.5));
+                            gc.setLineDashes(20);
+                            gc.setLineWidth(10);
+                            gc.strokeRect(x, y, width, height);
+                            gc.setLineDashes(0);
+                        }
+                        else
+                            objectSelector.selectAllObjectsIntersectingRectangle(x, y, width, height, offset, scale);
                 }
             }
         }
         else
-        {
             placedPlatformVertices.clear();
 
+        if(!Input.MOUSE_LEFT.isActive() || paused)
+        {
             mousePositionDuringSelectionStart = null;
+            mouseNeverMovedDuringSelection = true;
         }
 
         gc.drawImage(Main.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);

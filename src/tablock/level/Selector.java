@@ -12,7 +12,7 @@ import java.util.List;
 public class Selector<T extends Selectable>
 {
     private T objectBeingClicked;
-    private Point2D mousePositionDuringDragStart;
+    private Point2D previousMousePosition;
     private boolean objectWasJustSelected;
     private boolean objectWasNeverMoved = true;
     private boolean verticesWereNeverSelected = true;
@@ -48,15 +48,35 @@ public class Selector<T extends Selectable>
         }
     }
 
-    public void addObject(T object)
+    private void initializeVertexSelector(Point2D offset, double scale)
     {
-        objects.add(object);
+        if(vertexSelector != null && selectedObjects.size() == 1)
+        {
+            Selectable onlySelectedObject = selectedObjects.get(0);
+
+            for(int i = 0; i < onlySelectedObject.vertexCount; i++)
+            {
+                Vertex vertex = new Vertex(onlySelectedObject.worldXValues[i], onlySelectedObject.worldYValues[i]);
+
+                vertex.updateScreenValues(offset, scale);
+
+                vertexSelector.objects.add(vertex);
+            }
+        }
     }
 
-    public void calculateHoveredObjects(boolean objectsAreSelectable, boolean selectionNotInProgress, double scale, Point2D worldMouse, Point2D offset)
+    public void addObject(T object, Point2D offset, double scale)
+    {
+        objects.add(object);
+        selectedObjects.add(object);
+
+        initializeVertexSelector(offset, scale);
+    }
+
+    public void calculateHoveredObjects(boolean objectsAreSelectable, boolean mouseNeverMovedDuringSelection, double scale, Point2D worldMouse, Point2D offset)
     {
         if(vertexSelector != null)
-            vertexSelector.calculateHoveredObjects(objectsAreSelectable, selectionNotInProgress, scale, worldMouse, offset);
+            vertexSelector.calculateHoveredObjects(objectsAreSelectable, mouseNeverMovedDuringSelection, scale, worldMouse, offset);
 
         hoveredObjects.clear();
 
@@ -69,14 +89,14 @@ public class Selector<T extends Selectable>
                 if(Input.MOUSE_LEFT.wasJustActivated())
                 {
                     objectBeingClicked = object;
-                    mousePositionDuringDragStart = worldMouse;
+                    previousMousePosition = worldMouse;
                 }
 
                 hoveredObjects.add(object);
             }
         }
 
-        if(Input.MOUSE_LEFT.wasJustActivated() && vertexSelector != null && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable && addVertexIndicatorPosition == null && !selectionNotInProgress)
+        if((Input.MOUSE_LEFT.wasJustActivated() && vertexSelector != null && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable && addVertexIndicatorPosition == null) || mouseNeverMovedDuringSelection)
         {
             selectedObjects.clear();
 
@@ -86,12 +106,12 @@ public class Selector<T extends Selectable>
 
     public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse)
     {
-        if(objectBeingClicked != null && mousePositionDuringDragStart != null)
+        if(objectBeingClicked != null && previousMousePosition != null)
         {
             if(!selectedObjects.contains(objectBeingClicked))
                 objectWasJustSelected = true;
 
-            if(mousePositionDuringDragStart.distance(worldMouse) != 0)
+            if(previousMousePosition.distance(worldMouse) != 0)
                 objectWasNeverMoved = false;
 
             if(vertexSelector != null && vertexSelector.selectedObjects.size() != 0)
@@ -126,12 +146,12 @@ public class Selector<T extends Selectable>
             {
                 if(Input.MOUSE_LEFT.isActive())
                 {
-                    Point2D translation = mousePositionDuringDragStart.subtract(worldMouse);
+                    Point2D translation = previousMousePosition.subtract(worldMouse);
 
                     for(Selectable selectedObject : selectedObjects)
                         selectedObject.translate(translation, offset, scale);
 
-                    mousePositionDuringDragStart = worldMouse;
+                    previousMousePosition = worldMouse;
 
                     hoveredObjects.add(objectBeingClicked);
                 }
@@ -140,20 +160,7 @@ public class Selector<T extends Selectable>
             }
 
             resetVertexSelector();
-
-            if(vertexSelector != null && selectedObjects.size() == 1)
-            {
-                Selectable lastSelectedObject = selectedObjects.get(0);
-
-                for(int i = 0; i < lastSelectedObject.vertexCount; i++)
-                {
-                    Vertex vertex = new Vertex(lastSelectedObject.worldXValues[i], lastSelectedObject.worldYValues[i]);
-
-                    vertex.updateScreenValues(offset, scale);
-
-                    vertexSelector.objects.add(vertex);
-                }
-            }
+            initializeVertexSelector(offset, scale);
         }
 
         addVertexIndicatorPosition = null;
@@ -217,7 +224,7 @@ public class Selector<T extends Selectable>
             objectWasNeverMoved = true;
             verticesWereNeverSelected = true;
             objectBeingClicked = null;
-            mousePositionDuringDragStart = null;
+            previousMousePosition = null;
         }
 
         if(Input.DELETE.wasJustActivated() && vertexSelector != null)
@@ -284,14 +291,19 @@ public class Selector<T extends Selectable>
         }
     }
 
-    public void selectAllObjectsIntersectingRectangle(double x, double y, double width, double height)
+    public void selectAllObjectsIntersectingRectangle(double x, double y, double width, double height, Point2D offset, double scale)
     {
         for(T object : objects)
             if(object.getShape().intersects(x, y, width, height) && !selectedObjects.contains(object))
                 selectedObjects.add(object);
 
         if(vertexSelector != null && selectedObjects.size() == 1)
-            vertexSelector.selectAllObjectsIntersectingRectangle(x, y, width, height);
+        {
+            if(vertexSelector.objects.size() == 0)
+                initializeVertexSelector(offset, scale);
+            else
+                vertexSelector.selectAllObjectsIntersectingRectangle(x, y, width, height, offset, scale);
+        }
         else
             resetVertexSelector();
     }
