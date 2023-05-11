@@ -2,6 +2,9 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import org.dyn4j.geometry.Vector2;
 import tablock.core.Input;
 import tablock.core.VectorUtilities;
@@ -12,7 +15,10 @@ import java.util.List;
 public class Selector<T extends Selectable>
 {
     private T objectBeingClicked;
-    private Point2D previousMousePosition;
+    private Point2D previousMousePositionDuringDrag;
+    private Point2D mousePositionDuringScaleStart;
+    private Point2D objectCenterDuringScaleStart;
+    private Point2D[] vertexPositionsDuringScaleStart;
     private boolean objectWasJustSelected;
     private boolean objectWasNeverMoved = true;
     private boolean verticesWereNeverSelected = true;
@@ -54,6 +60,8 @@ public class Selector<T extends Selectable>
         {
             Selectable onlySelectedObject = selectedObjects.get(0);
 
+            vertexSelector.objects.clear();
+
             for(int i = 0; i < onlySelectedObject.vertexCount; i++)
             {
                 Vertex vertex = new Vertex(onlySelectedObject.worldXValues[i], onlySelectedObject.worldYValues[i]);
@@ -67,6 +75,8 @@ public class Selector<T extends Selectable>
 
     public void addObject(T object, Point2D offset, double scale)
     {
+        selectedObjects.clear();
+
         objects.add(object);
         selectedObjects.add(object);
 
@@ -80,23 +90,25 @@ public class Selector<T extends Selectable>
 
         hoveredObjects.clear();
 
+        boolean objectsCanBeSelected = objectsAreSelectable && addVertexIndicatorPosition == null && (vertexSelector == null || (vertexSelector.areNoObjectsHovered() && vertexSelector.objectBeingClicked == null));
+
         for(T object : objects)
         {
             object.updateScreenValues(offset, scale);
 
-            if(objectsAreSelectable && object.getShape().contains(Input.getMousePosition()) && (vertexSelector == null || (vertexSelector.areNoObjectsHovered() && vertexSelector.objectBeingClicked == null)))
+            if(object.getShape().contains(Input.getMousePosition()) && objectsCanBeSelected)
             {
                 if(Input.MOUSE_LEFT.wasJustActivated())
                 {
                     objectBeingClicked = object;
-                    previousMousePosition = worldMouse;
+                    previousMousePositionDuringDrag = worldMouse;
                 }
 
                 hoveredObjects.add(object);
             }
         }
 
-        if((Input.MOUSE_LEFT.wasJustActivated() && vertexSelector != null && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable && addVertexIndicatorPosition == null) || mouseNeverMovedDuringSelection)
+        if(mouseNeverMovedDuringSelection)
         {
             selectedObjects.clear();
 
@@ -106,12 +118,12 @@ public class Selector<T extends Selectable>
 
     public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, Point2D offset, double scale, Point2D worldMouse)
     {
-        if(objectBeingClicked != null && previousMousePosition != null)
+        if(objectBeingClicked != null && previousMousePositionDuringDrag != null)
         {
             if(!selectedObjects.contains(objectBeingClicked))
                 objectWasJustSelected = true;
 
-            if(previousMousePosition.distance(worldMouse) != 0)
+            if(previousMousePositionDuringDrag.distance(worldMouse) != 0)
                 objectWasNeverMoved = false;
 
             if(vertexSelector != null && vertexSelector.selectedObjects.size() != 0)
@@ -146,12 +158,12 @@ public class Selector<T extends Selectable>
             {
                 if(Input.MOUSE_LEFT.isActive())
                 {
-                    Point2D translation = previousMousePosition.subtract(worldMouse);
+                    Point2D translation = previousMousePositionDuringDrag.subtract(worldMouse);
 
                     for(Selectable selectedObject : selectedObjects)
                         selectedObject.translate(translation, offset, scale);
 
-                    previousMousePosition = worldMouse;
+                    previousMousePositionDuringDrag = worldMouse;
 
                     hoveredObjects.add(objectBeingClicked);
                 }
@@ -169,7 +181,46 @@ public class Selector<T extends Selectable>
         {
             Platform platform = (Platform) selectedObjects.get(0);
 
-            if(vertexSelector.hoveredObjects.size() == 0 && !objectWasJustSelected && objectsAreSelectable)
+            if(Input.S.wasJustActivated())
+            {
+                if(mousePositionDuringScaleStart == null)
+                {
+                    mousePositionDuringScaleStart = Input.getMousePosition();
+                    objectCenterDuringScaleStart = platform.getWorldCenter();
+                    vertexPositionsDuringScaleStart = new Point2D[vertexSelector.objects.size()];
+
+                    for(int i = 0; i < vertexSelector.objects.size(); i++)
+                    {
+                        Vertex vertex = vertexSelector.objects.get(i);
+
+                        vertexPositionsDuringScaleStart[i] = new Point2D(vertex.worldXValues[0], vertex.worldYValues[0]);
+                    }
+                }
+                else
+                {
+                    mousePositionDuringScaleStart = null;
+                    vertexPositionsDuringScaleStart = null;
+                }
+            }
+
+            if(mousePositionDuringScaleStart != null)
+            {
+                Point2D distantPoint = objectCenterDuringScaleStart.subtract(mousePositionDuringScaleStart).multiply(Integer.MAX_VALUE).add(mousePositionDuringScaleStart);
+
+                for(int i = 0; i < vertexSelector.objects.size(); i++)
+                {
+                    Vertex vertex = vertexSelector.objects.get(i);
+                    double distance = Input.getMousePosition().distance(distantPoint) - mousePositionDuringScaleStart.distance(distantPoint) + vertexPositionsDuringScaleStart[i].distance(objectCenterDuringScaleStart);
+                    Point2D localVertex = vertexPositionsDuringScaleStart[i].subtract(objectCenterDuringScaleStart).normalize().multiply(distance);
+
+                    vertex.worldXValues[0] = objectCenterDuringScaleStart.getX() + localVertex.getX();
+                    vertex.worldYValues[0] = objectCenterDuringScaleStart.getY() + localVertex.getY();
+
+                    vertex.updateScreenValues(offset, scale);
+                }
+            }
+
+            if(!objectWasJustSelected && objectsAreSelectable)
                 for(int i = 0; i < platform.vertexCount; i++)
                 {
                     int endPointIndex = (i + 1) % platform.vertexCount;
@@ -182,7 +233,7 @@ public class Selector<T extends Selectable>
                     {
                         Point2D worldMouseProjection = offset.subtract(screenMouseProjection.x, screenMouseProjection.y).multiply(-1 / scale);
 
-                        if(Input.MOUSE_LEFT.wasJustActivated())
+                        if(Input.MOUSE_LEFT.wasJustActivated() && vertexSelector.hoveredObjects.size() == 0)
                         {
                             vertexSelector.objects.add(endPointIndex, new Vertex(worldMouseProjection.getX(), worldMouseProjection.getY(), screenMouseProjection.x, screenMouseProjection.y));
 
@@ -199,6 +250,9 @@ public class Selector<T extends Selectable>
                         break;
                     }
                 }
+
+            if(addVertexIndicatorPosition == null && vertexSelector.objectBeingClicked == null && vertexSelector.hoveredObjects.size() == 0 && !hoveredObjects.contains(platform) && platform.getShape().contains(Input.getMousePosition()))
+                hoveredObjects.add(selectedObjects.get(0));
 
             vertexSelector.calculateAndDragSelectedObjects(objectsAreSelectable, offset, scale, worldMouse);
 
@@ -224,7 +278,7 @@ public class Selector<T extends Selectable>
             objectWasNeverMoved = true;
             verticesWereNeverSelected = true;
             objectBeingClicked = null;
-            previousMousePosition = null;
+            previousMousePositionDuringDrag = null;
         }
 
         if(Input.DELETE.wasJustActivated() && vertexSelector != null)
@@ -284,25 +338,29 @@ public class Selector<T extends Selectable>
 
         if(vertexSelector != null && selectedObjects.size() == 1)
         {
-            if(addVertexIndicatorPosition != null)
+            if(addVertexIndicatorPosition != null && vertexSelector.hoveredObjects.size() == 0)
                 Vertex.renderAddVertex(addVertexIndicatorPosition.x, addVertexIndicatorPosition.y, gc);
 
             vertexSelector.render(gc);
         }
     }
 
-    public void selectAllObjectsIntersectingRectangle(double x, double y, double width, double height, Point2D offset, double scale)
+    public void selectAllObjectsIntersectingRectangle(Rectangle rectangle, Point2D offset, double scale)
     {
         for(T object : objects)
-            if(object.getShape().intersects(x, y, width, height) && !selectedObjects.contains(object))
+        {
+            Path path = (Path) Shape.intersect(object.getShape(), rectangle);
+
+            if(path.getElements().size() != 0 && !selectedObjects.contains(object))
                 selectedObjects.add(object);
+        }
 
         if(vertexSelector != null && selectedObjects.size() == 1)
         {
             if(vertexSelector.objects.size() == 0)
                 initializeVertexSelector(offset, scale);
             else
-                vertexSelector.selectAllObjectsIntersectingRectangle(x, y, width, height, offset, scale);
+                vertexSelector.selectAllObjectsIntersectingRectangle(rectangle, offset, scale);
         }
         else
             resetVertexSelector();

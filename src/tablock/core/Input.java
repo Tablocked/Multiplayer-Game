@@ -25,6 +25,8 @@ public enum Input
     LEFT,
     RIGHT,
     JUMP,
+    R,
+    S,
     PAUSE,
     UI_UP,
     UI_LEFT,
@@ -128,6 +130,8 @@ public enum Input
 
         recordDigitalValue(JUMP, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
         recordDigitalValue(PAUSE, keysPressed.contains(KeyCode.ESCAPE) || controller.start);
+        recordDigitalValue(R, keysPressed.contains(KeyCode.R));
+        recordDigitalValue(S, keysPressed.contains(KeyCode.S));
 
         recordDigitalOrAnalogValue(UI_UP, keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.UP) || controller.dpadUp, controller.leftStickY, true);
         recordDigitalOrAnalogValue(UI_LEFT, keysPressed.contains(KeyCode.A) || keysPressed.contains(KeyCode.LEFT) || controller.dpadLeft, controller.leftStickX, false);

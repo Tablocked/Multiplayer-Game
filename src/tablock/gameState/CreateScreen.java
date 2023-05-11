@@ -3,6 +3,7 @@ package tablock.gameState;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import tablock.core.Input;
 import tablock.core.Main;
 import tablock.level.Level;
@@ -252,7 +253,7 @@ public class CreateScreen implements GameState
                 gc.stroke();
                 gc.closePath();
 
-                if(!firstVertexBeingHovered && wereNoObjectsHovered && currentInterface.areNoButtonsSelected())
+                if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected())
                     Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
 
                 for(Point2D worldVertex : placedPlatformVertices)
@@ -303,7 +304,7 @@ public class CreateScreen implements GameState
                             gc.setLineDashes(0);
                         }
                         else
-                            objectSelector.selectAllObjectsIntersectingRectangle(x, y, width, height, offset, scale);
+                            objectSelector.selectAllObjectsIntersectingRectangle(new Rectangle(x, y, width, height), offset, scale);
                 }
             }
         }
