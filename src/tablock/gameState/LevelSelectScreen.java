@@ -289,9 +289,9 @@ public class LevelSelectScreen implements GameState
         {
             if(Input.isUsingMouseControls())
             {
-                backButton.render(gc);
-                leftArrowButton.render(gc);
-                rightArrowButton.render(gc);
+                backButton.calculateSelectedAndRender(gc);
+                leftArrowButton.calculateSelectedAndRender(gc);
+                rightArrowButton.calculateSelectedAndRender(gc);
             }
 
             backButton.checkForActionButtonActivation();
@@ -329,6 +329,6 @@ public class LevelSelectScreen implements GameState
             }
         }
 
-        newButton.render(gc);
+        newButton.calculateSelectedAndRender(gc);
     }
 }

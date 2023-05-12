@@ -40,7 +40,8 @@ public enum Input
     private static Point2D mousePosition = new Point2D(-1, -1);
     private static Point2D scaledMousePosition;
     private static boolean usingMouseControls = true;
-    private static boolean mouseHidden = false;
+    private static boolean forceMouseHidden = false;
+    private static boolean forceMouseVisible = false;
     private static boolean shiftPressed = false;
     private static final double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
     private static final List<KeyCode> keysPressed = new ArrayList<>();
@@ -143,10 +144,12 @@ public enum Input
         recordDigitalValue(UI_PAGE_LEFT, keysPressed.contains(KeyCode.Q) || controller.lb);
         recordDigitalValue(UI_PAGE_RIGHT, keysPressed.contains(KeyCode.E) || controller.rb);
 
-        if(UI_UP.isActive() || UI_LEFT.isActive() || UI_DOWN.isActive() || UI_RIGHT.isActive())
+        if(forceMouseVisible)
+            usingMouseControls = true;
+        else if(UI_UP.isActive() || UI_LEFT.isActive() || UI_DOWN.isActive() || UI_RIGHT.isActive() || forceMouseHidden)
             usingMouseControls = false;
 
-        scene.setCursor(usingMouseControls && !mouseHidden ? Cursor.DEFAULT : Cursor.NONE);
+        scene.setCursor(usingMouseControls ? Cursor.DEFAULT : Cursor.NONE);
 
         scaledMousePosition = mousePosition.multiply(1 / scaleFactor);
     }
@@ -222,9 +225,14 @@ public enum Input
         scene.setOnScroll(onScrollHandler);
     }
 
-    public static void setMouseHidden(boolean mouseHidden)
+    public static void setForceMouseHidden(boolean forceMouseHidden)
     {
-        Input.mouseHidden = mouseHidden;
+        Input.forceMouseHidden = forceMouseHidden;
+    }
+
+    public static void setForceMouseVisible(boolean forceMouseVisible)
+    {
+        Input.forceMouseVisible = forceMouseVisible;
     }
 
     public boolean isActive()

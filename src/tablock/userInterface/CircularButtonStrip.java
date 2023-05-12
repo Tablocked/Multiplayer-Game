@@ -41,6 +41,12 @@ public class CircularButtonStrip
         return true;
     }
 
+    public void calculateSelectedButtons()
+    {
+        for(Button button : buttons)
+            button.calculateSelected();
+    }
+
     public void render(double x, double y, GraphicsContext gc)
     {
         double radius = 80;

@@ -35,7 +35,7 @@ public class PlayScreen implements GameState
 
     public PlayScreen(Level level)
     {
-        simulation = new Simulation(createPlayer(0, 600));
+        simulation = new Simulation(createPlayer(0, 0));
         createScreen = null;
         this.level = level;
 
@@ -44,7 +44,7 @@ public class PlayScreen implements GameState
 
     public PlayScreen(CreateScreen createScreen, double startX, double startY)
     {
-        simulation = new Simulation(createPlayer(startX, startY));
+        simulation = new Simulation(createPlayer(startX, -startY));
         this.createScreen = createScreen;
         this.level = createScreen.getLevel();
 
@@ -154,7 +154,7 @@ public class PlayScreen implements GameState
             {
                 simulation.removeAllBodies();
 
-                Input.setMouseHidden(false);
+                Input.setForceMouseHidden(false);
 
                 Renderer.setCurrentState(createScreen);
 
@@ -165,10 +165,10 @@ public class PlayScreen implements GameState
             paused = false;
 
         if(paused)
-            Input.setMouseHidden(false);
+            Input.setForceMouseHidden(false);
         else
         {
-            Input.setMouseHidden(true);
+            Input.setForceMouseHidden(true);
 
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }

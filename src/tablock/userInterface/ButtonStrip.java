@@ -63,7 +63,7 @@ public class ButtonStrip
             if(!frozen)
                 button.setSelected(index == i && !Input.isUsingMouseControls());
 
-            button.render(gc);
+            button.calculateSelectedAndRender(gc);
             button.checkForActionButtonActivation();
         }
     }

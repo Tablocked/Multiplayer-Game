@@ -37,13 +37,12 @@ public abstract class Button
         this.activationHandler = activationHandler;
     }
 
-    public void render(GraphicsContext gc)
+    public void calculateSelected()
     {
         if(hidden)
             return;
 
         double diagonal = Math.sqrt(2 * Math.pow(width, 2));
-        double offset = diagonal / 2;
         Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
         Shape shape = circular ? new Circle(x, y, diagonal / 2) : rectangle;
 
@@ -73,6 +72,12 @@ public abstract class Button
             activationHandler.onActivation();
 
         preventActivation = false;
+    }
+
+    public void render(GraphicsContext gc)
+    {
+        double diagonal = Math.sqrt(2 * Math.pow(width, 2));
+        double offset = diagonal / 2;
 
         if(selected && hoverText != null)
         {
@@ -102,7 +107,17 @@ public abstract class Button
             }
         }
         else
+        {
+            Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
+
             gc.fillRect(rectangle.getX(), rectangle.getY(), width, height);
+        }
+    }
+
+    public void calculateSelectedAndRender(GraphicsContext gc)
+    {
+        calculateSelected();
+        render(gc);
     }
 
     public void preventActivationForOneFrame()

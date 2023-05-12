@@ -34,20 +34,6 @@ public abstract class Selectable implements Serializable
         screenYValues[index] = (worldYValues[index] * scale) + offset.getY();
     }
 
-    private Point2D calculateCenter(double[] xValues, double[] yValues)
-    {
-        double sumX = 0;
-        double sumY = 0;
-
-        for(int i = 0; i < vertexCount; i++)
-        {
-            sumX += xValues[i];
-            sumY += yValues[i];
-        }
-
-        return new Point2D(sumX / vertexCount, sumY / vertexCount);
-    }
-
     public void updateScreenValues(Point2D offset, double scale)
     {
         for(int i = 0; i < vertexCount; i++)
@@ -67,16 +53,6 @@ public abstract class Selectable implements Serializable
 
             updateScreenValue(i, offset, scale);
         }
-    }
-
-    public Point2D getWorldCenter()
-    {
-        return calculateCenter(worldXValues, worldYValues);
-    }
-
-    public Point2D getScreenCenter()
-    {
-        return calculateCenter(screenXValues, screenYValues);
     }
 
     public double[] getWorldXValues()
