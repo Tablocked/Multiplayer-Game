@@ -7,8 +7,8 @@ import javafx.scene.shape.Rectangle;
 import tablock.core.Input;
 import tablock.core.Main;
 import tablock.level.Level;
+import tablock.level.ObjectSelector;
 import tablock.level.Platform;
-import tablock.level.Selector;
 import tablock.level.Vertex;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.CircularButtonStrip;
@@ -33,7 +33,7 @@ public class CreateScreen implements GameState
     private double timeDuringPreviousFrame = 0;
     private final List<Point2D> placedPlatformVertices = new ArrayList<>();
     private final Level level;
-    private final Selector<Platform> objectSelector;
+    private final ObjectSelector objectSelector;
     private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchToPlayScreen(0, 0), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
     private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
@@ -68,7 +68,7 @@ public class CreateScreen implements GameState
     {
         this.level = level;
 
-        objectSelector = new Selector<>(level.getObjects(), true);
+        objectSelector = new ObjectSelector(level.getObjects());
 
         Input.setOnScrollHandler(scrollEvent ->
         {
@@ -98,7 +98,7 @@ public class CreateScreen implements GameState
             timeDuringPreviousFrame = System.currentTimeMillis();
             complexPolygonAlertTime = 1000;
 
-            Point2D platformCenter = objectSelector.getComplexPlatforms().get(0).getScreenCenter();
+            Point2D platformCenter = objectSelector.getComplexPlatforms().get(0).calculateScreenCenter();
 
             if(isScreenPointOffScreen(platformCenter))
                 offset = offset.subtract(platformCenter).add(960, 540);
@@ -148,7 +148,7 @@ public class CreateScreen implements GameState
                     placedPlatformVertices.clear();
                 else if(objectSelector.isScaleInProgress())
                 {
-                    objectSelector.scaleSelectedObjects(offset, scale, null);
+                    objectSelector.scaleSelectedObjects(null);
                     objectSelector.confirmScale();
                 }
                 else if(isScreenPointOffScreen(getScreenPoint(worldInterfacePosition)))
@@ -182,8 +182,12 @@ public class CreateScreen implements GameState
 
         boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
 
-        objectSelector.calculateHoveredObjects(objectsAreSelectable, !Input.MOUSE_LEFT.isActive() && mouseNeverMovedDuringSelection && mousePositionDuringSelectionStart != null, scale, worldMouse, offset);
-        objectSelector.calculateAndDragSelectedObjects(objectsAreSelectable, mousePositionDuringSelectionStart == null, offset, scale, worldMouse);
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
+
+        if(!Input.MOUSE_LEFT.isActive() && mouseNeverMovedDuringSelection && mousePositionDuringSelectionStart != null)
+            objectSelector.deselectAllObjects();
+
+        objectSelector.tick(objectsAreSelectable, mousePositionDuringSelectionStart == null, worldMouse, scale);
 
         if(interfaceOpen)
         {
@@ -191,7 +195,7 @@ public class CreateScreen implements GameState
             currentInterface.calculateSelectedButtons();
         }
 
-        objectSelector.render(currentInterface.areNoButtonsSelected(), gc);
+        objectSelector.render(currentInterface.areNoButtonsSelected(), offset, scale, gc);
 
         if(complexPolygonAlertTime != 0)
         {
@@ -236,7 +240,9 @@ public class CreateScreen implements GameState
 
                             Platform platform = new Platform(worldXValues, worldYValues);
 
-                            objectSelector.addObject(platform, offset, scale);
+                            platform.updateScreenValues(offset, scale);
+
+                            objectSelector.addObject(platform);
 
                             if(!platform.calculateSimplePolygon())
                                 objectSelector.getComplexPlatforms().add(platform);
@@ -270,8 +276,8 @@ public class CreateScreen implements GameState
                 }
 
                 gc.setStroke(Color.GOLD);
-                gc.setLineDashes(20);
-                gc.setLineWidth(10);
+                gc.setLineWidth(5);
+                gc.setLineDashes(10);
                 gc.stroke();
                 gc.closePath();
 
@@ -309,26 +315,29 @@ public class CreateScreen implements GameState
 
                 if(mousePositionDuringSelectionStart != null)
                 {
-                    Point2D startPoint = getScreenPoint(mousePositionDuringSelectionStart);
-                    Point2D dimensions = screenMouse.subtract(startPoint);
+                    Point2D startPoint = mousePositionDuringSelectionStart;
+                    Point2D dimensions = worldMouse.subtract(startPoint);
                     double x = dimensions.getX() > 0 ? startPoint.getX() : startPoint.getX() + dimensions.getX();
                     double y = dimensions.getY() > 0 ? startPoint.getY() : startPoint.getY() + dimensions.getY();
                     double width = Math.abs(dimensions.getX());
                     double height = Math.abs(dimensions.getY());
 
-                    if(startPoint.distance(screenMouse) != 0)
+                    if(startPoint.distance(worldMouse) != 0)
                         if(Input.MOUSE_LEFT.isActive())
                         {
-                            gc.setStroke(Color.rgb(0, 255, 0, 0.5));
-                            gc.setLineDashes(20);
-                            gc.setLineWidth(10);
-                            gc.strokeRect(x, y, width, height);
+                            gc.setStroke(Color.GOLD);
+                            gc.setLineWidth(5);
+                            gc.setLineDashes(10);
+                            gc.strokeRect((x * scale) + offset.getX(), (y * scale) + offset.getY(), width * scale, height * scale);
                             gc.setLineDashes(0);
                         }
                         else
-                            objectSelector.selectAllObjectsIntersectingRectangle(new Rectangle(x, y, width, height), offset, scale);
+                            objectSelector.selectAllObjectsIntersectingRectangle(new Rectangle(x, y, width, height), scale);
                 }
             }
+
+            if(objectSelector.isScaleInProgress())
+                objectSelector.renderScaleIndicator(offset, scale, gc);
         }
         else
             placedPlatformVertices.clear();
@@ -343,7 +352,7 @@ public class CreateScreen implements GameState
 
         for(Platform platform : objectSelector.getComplexPlatforms())
         {
-            Point2D center = platform.getScreenCenter();
+            Point2D center = platform.calculateScreenCenter();
 
             gc.drawImage(Main.WARNING_TEXTURE, center.getX() - 25, center.getY() - 25);
         }

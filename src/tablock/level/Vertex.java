@@ -1,5 +1,6 @@
 package tablock.level;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -12,18 +13,13 @@ public class Vertex extends Selectable
 {
     @Serial
     private static final long serialVersionUID = -7071404509826592462L;
+    int index;
+    private final Platform platform;
 
-    public Vertex(double worldX, double worldY)
+    public Vertex(Platform platform, int index)
     {
-        super(new double[]{worldX}, new double[]{worldY});
-    }
-
-    public Vertex(double worldX, double worldY, double screenX, double screenY)
-    {
-        super(new double[]{worldX}, new double[]{worldY});
-
-        screenXValues[0] = screenX;
-        screenYValues[0] = screenY;
+        this.platform = platform;
+        this.index = index;
     }
 
     public static void renderAddVertex(double x, double y, GraphicsContext gc)
@@ -34,29 +30,32 @@ public class Vertex extends Selectable
     }
 
     @Override
-    public Shape getShape()
+    public Shape getShape(double scale)
     {
-        return new Circle(screenXValues[0], screenYValues[0], 12.5);
+        return new Circle(platform.worldXValues[index], platform.worldYValues[index], 12.5 * (1 / scale));
     }
 
     @Override
     public void renderObject(GraphicsContext gc)
     {
         gc.setFill(Color.rgb(255, 200, 0));
-        gc.fillOval(screenXValues[0] - 15, screenYValues[0] - 15, 30, 30);
-        gc.drawImage(Main.VERTEX_TEXTURE, screenXValues[0] - 12.5, screenYValues[0] - 12.5);
+        gc.fillOval(platform.screenXValues[index] - 15, platform.screenYValues[index] - 15, 30, 30);
+        gc.drawImage(Main.VERTEX_TEXTURE, platform.screenXValues[index] - 12.5, platform.screenYValues[index] - 12.5);
+    }
+
+    @Override
+    public void translate(Point2D translation)
+    {
+        platform.worldXValues[index] += translation.getX();
+        platform.worldYValues[index] += translation.getY();
     }
 
     @Override
     public void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc)
     {
-        gc.setLineWidth(5);
+        super.renderOutline(highlighted, selected, gc);
 
-        if(highlighted && selected)
-            gc.setLineDashes(8);
-
-        gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
-        gc.strokeOval(screenXValues[0] - 15, screenYValues[0] - 15, 30, 30);
+        gc.strokeOval(platform.screenXValues[index] - 15, platform.screenYValues[index] - 15, 30, 30);
         gc.setLineDashes(0);
     }
 }

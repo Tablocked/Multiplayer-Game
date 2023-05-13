@@ -5,6 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Shape;
+import org.dyn4j.geometry.Vector2;
 
 import java.io.Serial;
 
@@ -12,20 +13,31 @@ public class Platform extends Selectable
 {
     @Serial
     private static final long serialVersionUID = 7944900121369452854L;
+    int vertexCount;
+    double[] worldXValues;
+    double[] worldYValues;
+    double[] screenXValues;
+    double[] screenYValues;
     private boolean simplePolygon = true;
 
     public Platform(double[] worldXValues, double[] worldYValues)
     {
-        super(worldXValues,worldYValues);
+        vertexCount = worldXValues.length;
+
+        this.worldXValues = worldXValues;
+        this.worldYValues = worldYValues;
+
+        screenXValues = new double[vertexCount];
+        screenYValues = new double[vertexCount];
     }
 
     @Override
-    public Shape getShape()
+    public Shape getShape(double scale)
     {
         Polygon polygon = new Polygon();
 
         for(int i = 0; i < vertexCount; i++)
-            polygon.getPoints().addAll(screenXValues[i], screenYValues[i]);
+            polygon.getPoints().addAll(worldXValues[i], worldYValues[i]);
 
         return polygon;
     }
@@ -39,16 +51,31 @@ public class Platform extends Selectable
     }
 
     @Override
+    public void translate(Point2D translation)
+    {
+        for(int i = 0; i < vertexCount; i++)
+        {
+            worldXValues[i] += translation.getX();
+            worldYValues[i] += translation.getY();
+        }
+    }
+
+    @Override
     public void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc)
     {
-        gc.setLineWidth(10);
+        super.renderOutline(highlighted, selected, gc);
 
-        if(highlighted && selected)
-            gc.setLineDashes(20);
-
-        gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
         gc.strokePolygon(screenXValues, screenYValues, vertexCount);
         gc.setLineDashes(0);
+    }
+
+    public void updateScreenValues(Point2D offset, double scale)
+    {
+        for(int i = 0; i < vertexCount; i++)
+        {
+            screenXValues[i] = (worldXValues[i] * scale) + offset.getX();
+            screenYValues[i] = (worldYValues[i] * scale) + offset.getY();
+        }
     }
 
     public void renderComplexPolygonAlert(double opacity, GraphicsContext gc)
@@ -86,7 +113,7 @@ public class Platform extends Selectable
         return simplePolygon;
     }
 
-    public Point2D getScreenCenter()
+    public Point2D calculateScreenCenter()
     {
         double sumX = 0;
         double sumY = 0;
@@ -98,5 +125,15 @@ public class Platform extends Selectable
         }
 
         return new Point2D(sumX / vertexCount, sumY / vertexCount);
+    }
+
+    public Vector2[] convertToVectorArray()
+    {
+        Vector2[] vertices = new Vector2[vertexCount];
+
+        for(int i = 0; i < worldXValues.length; i++)
+            vertices[i] = new Vector2(worldXValues[i], -worldYValues[i]);
+
+        return vertices;
     }
 }

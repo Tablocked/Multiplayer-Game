@@ -69,12 +69,7 @@ public class PlayScreen implements GameState
         for(Platform object : level.getObjects())
         {
             Body body = new Body();
-            double[] xValues = object.getWorldXValues();
-            double[] yValues = object.getWorldYValues();
-            Vector2[] vertices = new Vector2[xValues.length];
-
-            for(int i = 0; i < xValues.length; i++)
-                vertices[i] = new Vector2(xValues[i], -yValues[i]);
+            Vector2[] vertices = object.convertToVectorArray();
 
             if(vertices.length > 3)
             {

@@ -2,6 +2,7 @@ package tablock.level;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Shape;
 
 import java.io.Serial;
@@ -11,57 +12,18 @@ public abstract class Selectable implements Serializable
 {
     @Serial
     private static final long serialVersionUID = 2724148026362484980L;
-    protected int vertexCount;
-    protected double[] worldXValues;
-    protected double[] worldYValues;
-    protected double[] screenXValues;
-    protected double[] screenYValues;
 
-    public Selectable(double[] worldXValues, double[] worldYValues)
-    {
-        vertexCount = worldXValues.length;
-
-        this.worldXValues = worldXValues;
-        this.worldYValues = worldYValues;
-
-        screenXValues = new double[vertexCount];
-        screenYValues = new double[vertexCount];
-    }
-
-    private void updateScreenValue(int index, Point2D offset, double scale)
-    {
-        screenXValues[index] = (worldXValues[index] * scale) + offset.getX();
-        screenYValues[index] = (worldYValues[index] * scale) + offset.getY();
-    }
-
-    public void updateScreenValues(Point2D offset, double scale)
-    {
-        for(int i = 0; i < vertexCount; i++)
-            updateScreenValue(i, offset, scale);
-    }
-
-    public abstract Shape getShape();
+    public abstract Shape getShape(double scale);
     public abstract void renderObject(GraphicsContext gc);
-    public abstract void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc);
+    public abstract void translate(Point2D translation);
 
-    public void translate(Point2D point2D, Point2D offset, double scale)
+    public void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc)
     {
-        for(int i = 0; i < vertexCount; i++)
-        {
-            worldXValues[i] += point2D.getX();
-            worldYValues[i] += point2D.getY();
+        gc.setLineWidth(5);
 
-            updateScreenValue(i, offset, scale);
-        }
-    }
+        if(highlighted && selected)
+            gc.setLineDashes(10);
 
-    public double[] getWorldXValues()
-    {
-        return worldXValues;
-    }
-
-    public double[] getWorldYValues()
-    {
-        return worldYValues;
+        gc.setStroke(highlighted && !selected ? Color.RED.desaturate().desaturate() : Color.LIGHTGREEN);
     }
 }

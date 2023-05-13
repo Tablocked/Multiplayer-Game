@@ -12,10 +12,10 @@ import tablock.gameState.Renderer;
 
 public abstract class Button
 {
-    protected double x;
-    protected double y;
-    protected double width;
-    protected double height;
+    double x;
+    double y;
+    double width;
+    double height;
     protected String hoverText;
     private ActivationHandler activationHandler;
     private Input input;
