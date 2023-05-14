@@ -46,7 +46,7 @@ public class PlayScreen implements GameState
     {
         simulation = new Simulation(createPlayer(startX, -startY));
         this.createScreen = createScreen;
-        this.level = createScreen.getLevel();
+        this.level = createScreen.level;
 
         addObjectsToSimulation();
     }
@@ -156,7 +156,7 @@ public class PlayScreen implements GameState
                 return;
             }
         }
-        else if(Input.UI_BACK.wasJustActivated() && paused)
+        else if(Input.BACK.wasJustActivated() && paused)
             paused = false;
 
         if(paused)

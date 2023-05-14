@@ -5,6 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import tablock.core.FilePointer;
 import tablock.core.Input;
 import tablock.core.Main;
 import tablock.level.Level;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class LevelSelectScreen implements GameState
 {
@@ -25,15 +27,14 @@ public class LevelSelectScreen implements GameState
     private ButtonStrip confirmButtonStrip;
     private int page = 1;
     private int maxPage;
-    private boolean renamingInProgress = false;
-    private final InputIndicatorStrip levelInputIndicatorStrip;
-    private final InputIndicatorStrip optionInputIndicatorStrip;
-    private final InputIndicatorStrip deleteInputIndicatorStrip;
-    private final Button backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> Renderer.setCurrentState(new TitleScreen()));
-    private final Button leftArrowButton = new ImageButton(870, 880, Main.getTexture("leftArrowButton"), () -> {page--; createButtons();});
-    private final Button rightArrowButton = new ImageButton(1050, 900, Main.getTexture("rightArrowButton"), () -> {page++; createButtons();});
+    private TextButton levelButtonDuringLevelRename;
+    private String levelNameDuringRenameStart;
+    private final InputIndicator inputIndicator = new InputIndicator();
+    private final TextButton backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> Renderer.setCurrentState(new TitleScreen()));
+    private final ImageButton leftArrowButton = new ImageButton(870, 880, Main.getTexture("leftArrowButton"), () -> {page--; createButtons();});
+    private final ImageButton rightArrowButton = new ImageButton(1050, 900, Main.getTexture("rightArrowButton"), () -> {page++; createButtons();});
 
-    private final Button newButton = new TextButton(960, 800, "New", 80, Color.WHITE, true, () ->
+    private final TextButton newButton = new TextButton(960, 800, "New", 80, Color.WHITE, true, () ->
     {
         try
         {
@@ -69,22 +70,12 @@ public class LevelSelectScreen implements GameState
 
     public LevelSelectScreen()
     {
-        levelInputIndicatorStrip = new InputIndicatorStrip
-        (
-            new InputIndicator(Input.UI_BACK, "Back to Main Menu"),
-            new InputIndicator(Input.UI_PAGE_LEFT, "Previous Page"),
-            new InputIndicator(Input.UI_PAGE_RIGHT, "Next Page")
-        );
-
-        optionInputIndicatorStrip = new InputIndicatorStrip(new InputIndicator(Input.UI_BACK, "Back"));
-        deleteInputIndicatorStrip = new InputIndicatorStrip(new InputIndicator(Input.UI_BACK, "Cancel"));
-
-        backButton.setActionButton(Input.UI_BACK);
+        backButton.setActionButton(Input.BACK);
         backButton.setSelectedColor(Color.rgb(0, 80, 0));
         backButton.setDeselectedColor(Color.rgb(80, 0 , 0));
         backButton.setWidth(750);
-        leftArrowButton.setActionButton(Input.UI_PAGE_LEFT);
-        rightArrowButton.setActionButton(Input.UI_PAGE_RIGHT);
+        leftArrowButton.setActionButton(Input.PREVIOUS_PAGE);
+        rightArrowButton.setActionButton(Input.NEXT_PAGE);
         newButton.setSelectedColor(Color.rgb(0, 80, 0));
         newButton.setDeselectedColor(Color.rgb(80, 0 , 0));
 
@@ -113,14 +104,14 @@ public class LevelSelectScreen implements GameState
 
         for(int i = 0; i < levelsOnPage; i++)
         {
-            File level = levels.get(((page - 1) * 5) + i);
+            FilePointer levelPointer = new FilePointer(levels.get(((page - 1) * 5) + i));
             int yPosition = 200 + (i * 120);
 
             TextButton renameButton = new TextButton("Rename", 50, null);
 
-            TextButton levelButton = new TextButton(960, yPosition, level.getName(), 80, Color.WHITE, false, () -> onLevelButtonActivation(level, renameButton, yPosition));
+            TextButton levelButton = new TextButton(960, yPosition, levelPointer.getFile().getName(), 80, Color.WHITE, false, () -> onLevelButtonActivation(levelPointer, renameButton, yPosition));
 
-            renameButton.setActivationHandler(() -> onRenameButtonActivation(levelButton, level));
+            renameButton.setActivationHandler(() -> onRenameButtonActivation(levelButton, levelPointer));
             levelButton.setWidth(1520);
             levelButton.setSelectedColor(Color.rgb(0, 80, 0));
             levelButton.setDeselectedColor(Color.rgb(80, 0 , 0));
@@ -143,11 +134,11 @@ public class LevelSelectScreen implements GameState
         return Main.getSavedData("levels").listFiles();
     }
 
-    private void onLevelButtonActivation(File level, Button renameButton, int yPosition)
+    private void onLevelButtonActivation(FilePointer levelPointer, Button renameButton, int yPosition)
     {
-        Button playButton = new TextButton("Play", 50, () -> Renderer.setCurrentState(new PlayScreen(deserializeLevel(level))));
-        Button editButton = new TextButton("Edit", 50, () -> Renderer.setCurrentState(new CreateScreen(deserializeLevel(level))));
-        Button deleteButton = new TextButton("Delete", 50, () -> onDeleteButtonActivation(yPosition, level));
+        Button playButton = new TextButton("Play", 50, () -> Renderer.setCurrentState(new PlayScreen(deserializeLevel(levelPointer.getFile()))));
+        Button editButton = new TextButton("Edit", 50, () -> Renderer.setCurrentState(new CreateScreen(deserializeLevel(levelPointer.getFile()), levelPointer.getFile().toPath())));
+        Button deleteButton = new TextButton("Delete", 50, () -> onDeleteButtonActivation(yPosition, levelPointer.getFile()));
 
         optionButtonStrip = new ButtonStrip(ButtonStrip.Orientation.HORIZONTAL, 1384, yPosition, 10, playButton, editButton, renameButton, deleteButton);
 
@@ -195,30 +186,33 @@ public class LevelSelectScreen implements GameState
             confirmButtonStrip = null;
         });
 
-        cancelButton.setActionButton(Input.UI_BACK);
+        cancelButton.setActionButton(Input.BACK);
 
         confirmButtonStrip = new ButtonStrip(ButtonStrip.Orientation.HORIZONTAL, 1512, yPosition, 10, confirmButton, cancelButton);
 
         confirmButtonStrip.setIndex(1);
     }
 
-    private void onRenameButtonActivation(TextButton levelButton, File level)
+    private void onRenameButtonActivation(TextButton levelButton, FilePointer levelPointer)
     {
         optionButtonStrip.setFrozen(true);
         optionButtonStrip.setHidden(true);
 
-        renamingInProgress = true;
+        levelButtonDuringLevelRename = levelButton;
+        levelNameDuringRenameStart = levelButton.getText();
 
-        Input.setOnKeyTypedHandler(keyEvent -> onKeyTyped(levelButton, keyEvent, level));
+        Input.setOnKeyTypedHandler(keyEvent -> onKeyTyped(keyEvent, levelPointer));
     }
 
-    private void onKeyTyped(TextButton levelButton, KeyEvent keyEvent, File level)
+    private void onKeyTyped(KeyEvent keyEvent, FilePointer levelPointer)
     {
-        String text = levelButton.getText();
+        String text = levelButtonDuringLevelRename.getText();
         String character = keyEvent.getCharacter();
         int asciiCode = character.charAt(0);
 
-        if(character.equals("\b"))
+        if(character.equals(".") || character.equals("/") || character.equals("\\"))
+            return;
+        else if(character.equals("\b"))
         {
             if(text.length() == 0)
                 text = "";
@@ -227,11 +221,14 @@ public class LevelSelectScreen implements GameState
         }
         else if(character.equals("\r"))
         {
-            String newPath = level.toPath().getParent().toString() + "/" + levelButton.getText();
+            String newPath = levelPointer.getFile().toPath().getParent().toString() + "/" + levelButtonDuringLevelRename.getText();
 
-            level.renameTo(new File(newPath));
+            if(!levelPointer.changeFilePath(newPath))
+                levelButtonDuringLevelRename.setText(levelNameDuringRenameStart);
 
             stopRenaming();
+
+            return;
         }
         else if(asciiCode >= 32 && asciiCode <= 126)
             text += character;
@@ -245,7 +242,7 @@ public class LevelSelectScreen implements GameState
             textShape = Renderer.getTextShape(text, font);
         }
 
-        levelButton.setText(text);
+        levelButtonDuringLevelRename.setText(text);
     }
 
     private void deselectNewButton()
@@ -258,9 +255,11 @@ public class LevelSelectScreen implements GameState
     {
         Input.setOnKeyTypedHandler(null);
 
-        createButtons();
+        optionButtonStrip.setFrozen(false);
+        optionButtonStrip.setHidden(false);
 
-        renamingInProgress = false;
+        levelButtonDuringLevelRename = null;
+        levelNameDuringRenameStart = null;
     }
 
     @Override
@@ -299,14 +298,20 @@ public class LevelSelectScreen implements GameState
             rightArrowButton.checkForActionButtonActivation();
             newButton.setHidden(false);
 
-            levelInputIndicatorStrip.render(gc);
+            inputIndicator.add("Back to Main Menu", Input.BACK);
+            inputIndicator.add("Previous Page", Input.PREVIOUS_PAGE);
+            inputIndicator.add("Next Page", Input.NEXT_PAGE);
         }
         else
         {
-            if(Input.UI_BACK.wasJustActivated() && confirmButtonStrip == null)
+            if(Input.BACK.wasJustActivated() && confirmButtonStrip == null)
             {
-                if(renamingInProgress)
+                if(levelButtonDuringLevelRename != null)
+                {
+                    levelButtonDuringLevelRename.setText(levelNameDuringRenameStart);
+
                     stopRenaming();
+                }
                 else
                 {
                     optionButtonStrip = null;
@@ -315,20 +320,15 @@ public class LevelSelectScreen implements GameState
                 }
             }
             else
-            {
-                if(confirmButtonStrip == null)
-                {
-                    optionButtonStrip.render(gc);
-                    optionInputIndicatorStrip.render(gc);
-                }
-                else
-                {
-                    confirmButtonStrip.render(gc);
-                    deleteInputIndicatorStrip.render(gc);
-                }
-            }
+                Objects.requireNonNullElseGet(confirmButtonStrip, () -> optionButtonStrip).render(gc);
+
+            String text = confirmButtonStrip != null || levelButtonDuringLevelRename != null ? "Cancel" : "Back";
+
+            inputIndicator.add(text, Input.BACK);
         }
 
         newButton.calculateSelectedAndRender(gc);
+
+        inputIndicator.render(gc);
     }
 }

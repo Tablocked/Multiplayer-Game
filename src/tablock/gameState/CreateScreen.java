@@ -10,16 +10,18 @@ import tablock.level.Level;
 import tablock.level.ObjectSelector;
 import tablock.level.Platform;
 import tablock.level.Vertex;
-import tablock.userInterface.ButtonStrip;
-import tablock.userInterface.CircularButtonStrip;
-import tablock.userInterface.ImageButton;
-import tablock.userInterface.TextButton;
+import tablock.userInterface.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class CreateScreen implements GameState
 {
+    final Level level;
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
@@ -31,44 +33,48 @@ public class CreateScreen implements GameState
     private boolean platformMode = false;
     private double complexPolygonAlertTime = 0;
     private double timeDuringPreviousFrame = 0;
+    private CircularButtonStrip currentInterface;
     private final List<Point2D> placedPlatformVertices = new ArrayList<>();
-    private final Level level;
     private final ObjectSelector objectSelector;
-    private final ImageButton playFromStartButton = new ImageButton(Main.getTexture("playFromStartButton"), () -> switchToPlayScreen(0, 0), "Play from start");
-    private final ImageButton playFromHereButton = new ImageButton(Main.getTexture("playFromHereButton"), () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
-    private final ImageButton platformButton = new ImageButton(Main.getTexture("platformButton"), () -> platformMode = !platformMode, "Platform");
+    private final ImageButton playFromStartButton = new ImageButton(Main.PLAY_FROM_START_BUTTON_TEXTURE, () -> switchToPlayScreen(0, 0), "Play from start");
+    private final ImageButton playFromHereButton = new ImageButton(Main.PLAY_FROM_HERE_BUTTON_TEXTURE, () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
+    private final ImageButton platformButton = new ImageButton(Main.PLATFORM_BUTTON_TEXTURE, () -> platformMode = !platformMode, "Platform");
+    private final InputIndicator inputIndicator = new InputIndicator();
     private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
+    private final CircularButtonStrip mainInterface;
 
-    private final CircularButtonStrip mainInterface = new CircularButtonStrip
-    (
-        playFromStartButton,
-        playFromHereButton,
-        new ImageButton(Main.getTexture("objectsButton"), () -> currentInterface = objectInterface, "Objects")
-    );
+    private final ButtonStrip pauseButtons;
 
-    private final ButtonStrip pauseButtons = new ButtonStrip
-    (
-        ButtonStrip.Orientation.VERTICAL,
-
-        new TextButton(960, 340, "Resume", 100, () -> paused = false),
-
-        new TextButton(960, 540, "Quit To Main Menu", 100, () ->
-        {
-            Input.setForceMouseVisible(false);
-
-            Renderer.setCurrentState(new TitleScreen());
-        }),
-
-        new TextButton(960, 740, "Quit To Desktop", 100, () -> System.exit(0))
-    );
-
-    private CircularButtonStrip currentInterface = mainInterface;
-
-    public CreateScreen(Level level)
+    public CreateScreen(Level level, Path levelPath)
     {
         this.level = level;
 
         objectSelector = new ObjectSelector(level.getObjects());
+
+        mainInterface = new CircularButtonStrip
+        (
+            playFromStartButton,
+            playFromHereButton,
+            new ImageButton(Main.OBJECTS_BUTTON_TEXTURE, () -> currentInterface = objectInterface, "Objects"),
+            new ImageButton(Main.SAVE_BUTTON_TEXTURE, () -> saveLevel(levelPath),"Save")
+        );
+
+        pauseButtons = new ButtonStrip
+        (
+            ButtonStrip.Orientation.VERTICAL,
+
+            new TextButton(960, 340, "Resume", 100, () -> paused = false),
+
+            new TextButton(960, 540, "Save and Exit", 100, () ->
+            {
+                saveLevel(levelPath);
+                switchToLevelSelectScreen();
+            }),
+
+            new TextButton(960, 740, "Exit Without Saving", 100, this::switchToLevelSelectScreen)
+        );
+
+        currentInterface = mainInterface;
 
         Input.setOnScrollHandler(scrollEvent ->
         {
@@ -82,11 +88,29 @@ public class CreateScreen implements GameState
                 offset = offset.add(xOffset - (xOffset * scaleFactor), yOffset - (yOffset * scaleFactor));
             }
         });
+
+        for(Platform platform : level.getObjects())
+            if(!platform.isSimplePolygon())
+                objectSelector.getComplexPlatforms().add(platform);
     }
 
-    private boolean isScreenPointOffScreen(Point2D screenPoint)
+    private void switchToLevelSelectScreen()
     {
-        return !(screenPoint.getX() > 0) || !(screenPoint.getX() < 1920) || !(screenPoint.getY() > 0) || !(screenPoint.getY() < 1080);
+        Input.setForceMouseVisible(false);
+
+        Renderer.setCurrentState(new LevelSelectScreen());
+    }
+
+    private void saveLevel(Path levelPath)
+    {
+        try
+        {
+            Files.write(levelPath, Objects.requireNonNull(Main.serializeObject(level)));
+        }
+        catch(IOException exception)
+        {
+            throw new RuntimeException(exception);
+        }
     }
 
     private void switchToPlayScreen(double startX, double startY)
@@ -112,6 +136,11 @@ public class CreateScreen implements GameState
         return worldPoint.multiply(scale).add(offset);
     }
 
+    private boolean isScreenPointOffScreen(Point2D screenPoint)
+    {
+        return !(screenPoint.getX() > 0) || !(screenPoint.getX() < 1920) || !(screenPoint.getY() > 0) || !(screenPoint.getY() < 1080);
+    }
+
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
@@ -125,14 +154,14 @@ public class CreateScreen implements GameState
 
             pauseButtons.setIndex(0);
         }
-        else if(Input.UI_BACK.wasJustActivated() && paused)
+        else if(Input.BACK.wasJustActivated() && paused)
             paused = false;
 
         Input.setForceMouseVisible(!paused);
 
         if(!paused)
         {
-            if(Input.MOUSE_MIDDLE.wasJustActivated())
+            if(Input.MOUSE_MIDDLE.wasJustActivated() && currentInterface.areNoButtonsSelected())
                 mousePositionDuringDragStart = screenMouse;
 
             if(Input.MOUSE_MIDDLE.isActive() && mousePositionDuringDragStart != null)
@@ -142,15 +171,12 @@ public class CreateScreen implements GameState
                 mousePositionDuringDragStart = screenMouse;
             }
 
-            if(Input.MOUSE_RIGHT.wasJustActivated())
+            if(Input.MOUSE_RIGHT.wasJustActivated() && !objectSelector.areAnyObjectsBeingClicked())
             {
                 if(placedPlatformVertices.size() != 0)
                     placedPlatformVertices.clear();
-                else if(objectSelector.isScaleInProgress())
-                {
-                    objectSelector.scaleSelectedObjects(null);
-                    objectSelector.confirmScale();
-                }
+                else if(objectSelector.isTransformationInProgress())
+                    objectSelector.transformSelectedObjects(null);
                 else if(isScreenPointOffScreen(getScreenPoint(worldInterfacePosition)))
                 {
                     interfaceOpen = true;
@@ -180,7 +206,7 @@ public class CreateScreen implements GameState
         if(mousePositionDuringSelectionStart != null && mousePositionDuringSelectionStart.distance(worldMouse) != 0)
             mouseNeverMovedDuringSelection = false;
 
-        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.isAnObjectBeingClicked());
+        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.areAnyObjectsBeingClicked());
 
         objectSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
 
@@ -191,7 +217,7 @@ public class CreateScreen implements GameState
 
         if(interfaceOpen)
         {
-            currentInterface.setFrozen(paused || placedPlatformVertices.size() != 0 || mousePositionDuringSelectionStart != null || objectSelector.isAnObjectBeingClicked() || objectSelector.isScaleInProgress());
+            currentInterface.setFrozen(paused || placedPlatformVertices.size() != 0 || mousePositionDuringSelectionStart != null || objectSelector.areAnyObjectsBeingClicked() || objectSelector.isTransformationInProgress());
             currentInterface.calculateSelectedButtons();
         }
 
@@ -215,14 +241,14 @@ public class CreateScreen implements GameState
 
         if(!paused)
         {
-            if(platformMode && !Input.isShiftPressed() && objectSelector.areNoObjectsHovered())
+            if(platformMode && objectSelector.areNoObjectsHovered() && (!Input.isShiftPressed() || placedPlatformVertices.size() != 0))
             {
                 Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
                 boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
 
                 mousePositionDuringSelectionStart = null;
 
-                if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !objectSelector.isAnObjectBeingClicked())
+                if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !objectSelector.areAnyObjectsBeingClicked() && !Input.MOUSE_MIDDLE.isActive())
                     if(firstVertexBeingHovered)
                     {
                         if(placedPlatformVertices.size() > 2)
@@ -242,12 +268,9 @@ public class CreateScreen implements GameState
 
                             platform.updateScreenValues(offset, scale);
 
-                            objectSelector.addObject(platform);
-
-                            if(!platform.calculateSimplePolygon())
-                                objectSelector.getComplexPlatforms().add(platform);
-
                             placedPlatformVertices.clear();
+
+                            objectSelector.addObject(platform);
                         }
                     }
                     else
@@ -281,7 +304,7 @@ public class CreateScreen implements GameState
                 gc.stroke();
                 gc.closePath();
 
-                if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected())
+                if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected() && !Input.MOUSE_MIDDLE.isActive())
                     Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
 
                 for(Point2D worldVertex : placedPlatformVertices)
@@ -309,10 +332,8 @@ public class CreateScreen implements GameState
 
                 gc.setLineDashes(0);
             }
-            else
+            else if(placedPlatformVertices.size() == 0)
             {
-                placedPlatformVertices.clear();
-
                 if(mousePositionDuringSelectionStart != null)
                 {
                     Point2D startPoint = mousePositionDuringSelectionStart;
@@ -336,8 +357,8 @@ public class CreateScreen implements GameState
                 }
             }
 
-            if(objectSelector.isScaleInProgress())
-                objectSelector.renderScaleIndicator(offset, scale, gc);
+            if(objectSelector.isTransformationInProgress())
+                objectSelector.renderTransformationIndicator(offset, scale, gc);
         }
         else
             placedPlatformVertices.clear();
@@ -392,10 +413,48 @@ public class CreateScreen implements GameState
 
             pauseButtons.render(gc);
         }
-    }
+        else
+        {
+            if(objectSelector.areAnyObjectsSelected() && !Input.MOUSE_MIDDLE.isActive() && placedPlatformVertices.size() == 0 && mousePositionDuringSelectionStart == null && currentInterface.areNoButtonsSelected())
+            {
+                if(objectSelector.canSelectedObjectsBeDeleted() && objectsAreSelectable)
+                    inputIndicator.add("Delete", Main.KEYBOARD_DELETE_TEXTURE);
 
-    public Level getLevel()
-    {
-        return level;
+                if(!objectSelector.areAnyObjectsBeingClicked())
+                {
+                    inputIndicator.add(objectSelector.isScaleInProgress() ? "Confirm Scale" : "Scale", Main.KEYBOARD_S_TEXTURE);
+                    inputIndicator.add(objectSelector.isRotationInProgress() ? "Confirm Rotation" : "Rotate", Main.KEYBOARD_R_TEXTURE);
+                }
+            }
+
+            if(currentInterface.areNoButtonsSelected())
+                inputIndicator.add("Pan View", Main.MOUSE_MIDDLE_TEXTURE);
+
+            if(!objectSelector.areAnyObjectsBeingClicked())
+            {
+                String mouseRightText;
+
+                if(placedPlatformVertices.size() != 0)
+                    mouseRightText = "Cancel";
+                else if(objectSelector.isTransformationInProgress())
+                    mouseRightText = objectSelector.isScaleInProgress() ? "Cancel Scale" : "Cancel Rotation";
+                else if(interfaceOpen && !isScreenPointOffScreen(getScreenPoint(worldInterfacePosition)))
+                {
+                    if(currentInterface == mainInterface)
+                        mouseRightText = "Close Interface";
+                    else
+                        mouseRightText = "Back";
+                }
+                else
+                    mouseRightText = "Open Interface";
+
+                inputIndicator.add(mouseRightText, Main.MOUSE_RIGHT_TEXTURE);
+            }
+
+            if(!Input.MOUSE_MIDDLE.isActive() && currentInterface.areNoButtonsSelected() && placedPlatformVertices.size() == 0 && !objectSelector.isTransformationInProgress())
+                inputIndicator.add( "Select Multiple", Main.KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE);
+
+            inputIndicator.render(gc);
+        }
     }
 }

@@ -13,10 +13,10 @@ import java.util.List;
 
 public class ObjectSelector extends Selector<Platform>
 {
-    private List<Point2D[]> vertexPositionsDuringTransformationStart;
-    private Point2D objectCenterDuringTransformationStart;
     private Point2D mousePositionDuringScaleStart;
     private Point2D mousePositionDuringRotateStart;
+    private List<Point2D[]> vertexPositionsDuringTransformationStart;
+    private Point2D objectCenterDuringTransformationStart;
     private boolean verticesWereNeverSelected = true;
     private Vector2 addVertexIndicatorPosition;
     private final List<Platform> complexPlatforms = new ArrayList<>();
@@ -52,10 +52,7 @@ public class ObjectSelector extends Selector<Platform>
     @Override
     public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, double scale)
     {
-        if(vertexPositionsDuringTransformationStart == null)
-            vertexSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
-        else
-            vertexSelector.hoveredObjects.clear();
+        vertexSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
 
         super.calculateHoveredObjects(objectsAreSelectable && addVertexIndicatorPosition == null && vertexPositionsDuringTransformationStart == null && vertexSelector.hoveredObjects.size() == 0 && vertexSelector.objectBeingClicked == null, worldMouse, scale);
     }
@@ -74,105 +71,56 @@ public class ObjectSelector extends Selector<Platform>
 
         if(selectedObjects.size() != 0 && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable)
         {
-            if(Input.S.wasJustActivated())
+            if(Input.S.wasJustActivated() || Input.R.wasJustActivated())
             {
-                if(mousePositionDuringScaleStart == null)
+                if(Input.S.wasJustActivated())
                 {
-                    double totalVertexCount = 0;
-                    double sumX = 0;
-                    double sumY = 0;
-
-                    vertexPositionsDuringTransformationStart = new ArrayList<>();
-
-                    for(Platform platform : selectedObjects)
-                    {
-                        Point2D[] vertices = new Point2D[platform.vertexCount];
-
-                        for(int i = 0; i < platform.vertexCount; i++)
-                        {
-                            vertices[i] = new Point2D(platform.worldXValues[i], platform.worldYValues[i]);
-
-                            sumX += platform.worldXValues[i];
-                            sumY += platform.worldYValues[i];
-
-                            totalVertexCount++;
-                        }
-
-                        vertexPositionsDuringTransformationStart.add(vertices);
-                    }
-
-                    mousePositionDuringScaleStart = worldMouse;
-                    objectCenterDuringTransformationStart = new Point2D(sumX / totalVertexCount, sumY / totalVertexCount);
-                }
-                else
-                    confirmScale();
-            }
-
-            scaleSelectedObjects(worldMouse);
-
-            if(Input.R.wasJustActivated())
-            {
-                if(mousePositionDuringRotateStart == null)
-                {
-                    double totalVertexCount = 0;
-                    double sumX = 0;
-                    double sumY = 0;
-
-                    vertexPositionsDuringTransformationStart = new ArrayList<>();
-
-                    for(Platform platform : selectedObjects)
-                    {
-                        Point2D[] vertices = new Point2D[platform.vertexCount];
-
-                        for(int i = 0; i < platform.vertexCount; i++)
-                        {
-                            vertices[i] = new Point2D(platform.worldXValues[i], platform.worldYValues[i]);
-
-                            sumX += platform.worldXValues[i];
-                            sumY += platform.worldYValues[i];
-
-                            totalVertexCount++;
-                        }
-
-                        vertexPositionsDuringTransformationStart.add(vertices);
-                    }
-
-                    mousePositionDuringRotateStart = worldMouse;
-                    objectCenterDuringTransformationStart = new Point2D(sumX / totalVertexCount, sumY / totalVertexCount);
-                }
-                else
-                {
+                    mousePositionDuringScaleStart = mousePositionDuringScaleStart == null ? worldMouse : null;
                     mousePositionDuringRotateStart = null;
-                    objectCenterDuringTransformationStart = null;
-                    vertexPositionsDuringTransformationStart = null;
                 }
-            }
 
-            if(mousePositionDuringRotateStart != null)
-            {
-                Point2D startMouse = mousePositionDuringRotateStart.subtract(objectCenterDuringTransformationStart);
-                Point2D currentMouse = worldMouse.subtract(objectCenterDuringTransformationStart);
-                double angleBetweenStartMouseAndCenter = Math.signum(-startMouse.getY()) * Math.toRadians(startMouse.angle(1, 0));
-                double sign = (currentMouse.getX() * Math.sin(angleBetweenStartMouseAndCenter)) + (currentMouse.getY() * Math.cos(angleBetweenStartMouseAndCenter)) >= 0 ? 1 : -1;
-                double angle = sign * Math.toRadians(startMouse.angle(currentMouse));
-
-                for(int i = 0; i < selectedObjects.size(); i++)
+                if(Input.R.wasJustActivated())
                 {
-                    Platform platform = selectedObjects.get(i);
-                    Point2D[] vertices = vertexPositionsDuringTransformationStart.get(i);
+                    mousePositionDuringRotateStart = mousePositionDuringRotateStart == null ? worldMouse : null;
+                    mousePositionDuringScaleStart = null;
+                }
 
-                    for(int j = 0; j < platform.vertexCount; j++)
+                if(mousePositionDuringScaleStart != null || mousePositionDuringRotateStart != null)
+                {
+                    double totalVertexCount = 0;
+                    double sumX = 0;
+                    double sumY = 0;
+
+                    vertexPositionsDuringTransformationStart = new ArrayList<>();
+
+                    for(Platform platform : selectedObjects)
                     {
-                        Point2D localVertex = vertices[j].subtract(objectCenterDuringTransformationStart);
-                        double x = (localVertex.getX() * Math.cos(angle)) - (localVertex.getY() * Math.sin(angle));
-                        double y = (localVertex.getX() * Math.sin(angle)) + (localVertex.getY() * Math.cos(angle));
-                        Point2D vertex = new Point2D(x, y).add(objectCenterDuringTransformationStart);
+                        Point2D[] vertices = new Point2D[platform.vertexCount];
 
-                        platform.worldXValues[j] = vertex.getX();
-                        platform.worldYValues[j] = vertex.getY();
+                        for(int i = 0; i < platform.vertexCount; i++)
+                        {
+                            vertices[i] = new Point2D(platform.worldXValues[i], platform.worldYValues[i]);
+
+                            sumX += platform.worldXValues[i];
+                            sumY += platform.worldYValues[i];
+
+                            totalVertexCount++;
+                        }
+
+                        vertexPositionsDuringTransformationStart.add(vertices);
                     }
+
+                    objectCenterDuringTransformationStart = new Point2D(sumX / totalVertexCount, sumY / totalVertexCount);
+                }
+                else
+                {
+                    vertexPositionsDuringTransformationStart = null;
+                    objectCenterDuringTransformationStart = null;
                 }
             }
+
+            if(objectCenterDuringTransformationStart != null)
+                transformSelectedObjects(worldMouse);
         }
 
         if(selectedObjects.size() == 1 && objectsAreSelectable && vertexPositionsDuringTransformationStart == null)
@@ -224,8 +172,18 @@ public class ObjectSelector extends Selector<Platform>
                     }
                 }
 
-            if(addVertexIndicatorPosition == null && vertexSelector.objectBeingClicked == null && vertexSelector.hoveredObjects.size() == 0 && !hoveredObjects.contains(platform) && platform.getShape(scale).contains(worldMouse))
-                hoveredObjects.add(selectedObjects.get(0));
+            if(addVertexIndicatorPosition == null && platform.getShape(scale).contains(worldMouse))
+            {
+                if(vertexSelector.objectBeingClicked == null && vertexSelector.hoveredObjects.size() == 0 && !hoveredObjects.contains(platform))
+                    hoveredObjects.add(platform);
+            }
+            else
+            {
+                if(addVertexIndicatorPosition == null)
+                    calculateHoveredObjects(true, worldMouse, scale);
+                else
+                    hoveredObjects.clear();
+            }
 
             vertexSelector.calculateAndDragSelectedObjects(true, noSelectionInProgress, worldMouse);
 
@@ -237,10 +195,18 @@ public class ObjectSelector extends Selector<Platform>
         else if(noSelectionInProgress)
             resetVertexSelector();
 
-        if(Input.DELETE.wasJustActivated())
+        if(Input.DELETE.wasJustActivated() && objectsAreSelectable)
         {
             if(vertexSelector.selectedObjects.size() == 0)
             {
+                objectBeingClicked = null;
+                objectWasJustSelected = false;
+                objectWasNeverMoved = true;
+                mousePositionDuringScaleStart = null;
+                mousePositionDuringRotateStart = null;
+                vertexPositionsDuringTransformationStart = null;
+                objectCenterDuringTransformationStart = null;
+
                 objects.removeAll(selectedObjects);
                 hoveredObjects.removeAll(selectedObjects);
                 complexPlatforms.removeAll(selectedObjects);
@@ -261,18 +227,23 @@ public class ObjectSelector extends Selector<Platform>
 
                 platform.vertexCount -= indicesMarkedForRemoval.length;
 
+                double[] newWorldXValues = new double[platform.vertexCount];
+                double[] newWorldYValues = new double[platform.vertexCount];
+
                 for(int i = 0; i < platform.vertexCount; i++)
                 {
                     for(int indexMarkedForRemoval : indicesMarkedForRemoval)
                         if(i + indexOffset == indexMarkedForRemoval)
                             indexOffset++;
 
-                    platform.worldXValues[i] = platform.worldXValues[i + indexOffset];
-                    platform.worldYValues[i] = platform.worldYValues[i + indexOffset];
+                    newWorldXValues[i] = platform.worldXValues[i + indexOffset];
+                    newWorldYValues[i] = platform.worldYValues[i + indexOffset];
 
                     vertexSelector.objects.add(new Vertex(platform, i));
                 }
 
+                platform.worldXValues = newWorldXValues;
+                platform.worldYValues = newWorldYValues;
                 platform.screenXValues = new double[platform.vertexCount];
                 platform.screenYValues = new double[platform.vertexCount];
             }
@@ -312,7 +283,7 @@ public class ObjectSelector extends Selector<Platform>
     {
         selectedObjects.clear();
 
-        objects.add(object);
+        objects.add(0, object);
         selectedObjects.add(object);
 
         initializeVertexSelector();
@@ -337,44 +308,70 @@ public class ObjectSelector extends Selector<Platform>
             resetVertexSelector();
     }
 
-    public void scaleSelectedObjects(Point2D worldMouse)
+    public void transformSelectedObjects(Point2D worldMouse)
     {
-        if(mousePositionDuringScaleStart != null)
-        {
-            double scaleFactor = -1;
+        double transformation = -1;
 
-            if(worldMouse != null)
+        if(worldMouse != null)
+        {
+            if(mousePositionDuringScaleStart != null)
             {
                 double startMouseDistance = mousePositionDuringScaleStart.distance(objectCenterDuringTransformationStart);
                 double sign = mousePositionDuringScaleStart.subtract(objectCenterDuringTransformationStart).angle(worldMouse.subtract(objectCenterDuringTransformationStart)) < 90 ? 1 : -1;
 
-                scaleFactor = sign * (((worldMouse.distance(objectCenterDuringTransformationStart) - startMouseDistance) / startMouseDistance) + 1);
+                transformation = sign * (((worldMouse.distance(objectCenterDuringTransformationStart) - startMouseDistance) / startMouseDistance) + 1);
             }
-
-            for(int i = 0; i < selectedObjects.size(); i++)
+            else if(mousePositionDuringRotateStart != null)
             {
-                Platform platform = selectedObjects.get(i);
-                Point2D[] vertices = vertexPositionsDuringTransformationStart.get(i);
+                Point2D startMouse = mousePositionDuringRotateStart.subtract(objectCenterDuringTransformationStart);
+                Point2D currentMouse = worldMouse.subtract(objectCenterDuringTransformationStart);
+                double angleBetweenStartMouseAndCenter = Math.signum(-startMouse.getY()) * Math.toRadians(startMouse.angle(1, 0));
+                double sign = (currentMouse.getX() * Math.sin(angleBetweenStartMouseAndCenter)) + (currentMouse.getY() * Math.cos(angleBetweenStartMouseAndCenter)) >= 0 ? 1 : -1;
 
-                for(int j = 0; j < platform.vertexCount; j++)
+                transformation = sign * Math.toRadians(startMouse.angle(currentMouse));
+            }
+        }
+
+        for(int i = 0; i < selectedObjects.size(); i++)
+        {
+            Platform platform = selectedObjects.get(i);
+            Point2D[] startingVertices = vertexPositionsDuringTransformationStart.get(i);
+
+            for(int j = 0; j < platform.vertexCount; j++)
+            {
+                Point2D transformedVertex = null;
+
+                if(worldMouse == null)
+                    transformedVertex = startingVertices[j];
+                else if(mousePositionDuringScaleStart != null)
+                    transformedVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart).multiply(transformation).add(objectCenterDuringTransformationStart);
+                else if(mousePositionDuringRotateStart != null)
                 {
-                    Point2D vertex = worldMouse != null ? vertices[j].subtract(objectCenterDuringTransformationStart).multiply(scaleFactor).add(objectCenterDuringTransformationStart) : vertices[j];
+                    Point2D localVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart);
+                    double x = (localVertex.getX() * Math.cos(transformation)) - (localVertex.getY() * Math.sin(transformation));
+                    double y = (localVertex.getX() * Math.sin(transformation)) + (localVertex.getY() * Math.cos(transformation));
 
-                    platform.worldXValues[j] = vertex.getX();
-                    platform.worldYValues[j] = vertex.getY();
+                    transformedVertex = new Point2D(x, y).add(objectCenterDuringTransformationStart);
+                }
+
+                if(transformedVertex != null)
+                {
+                    platform.worldXValues[j] = transformedVertex.getX();
+                    platform.worldYValues[j] = transformedVertex.getY();
                 }
             }
         }
+
+        if(worldMouse == null)
+        {
+            mousePositionDuringScaleStart = null;
+            mousePositionDuringRotateStart = null;
+            vertexPositionsDuringTransformationStart = null;
+            objectCenterDuringTransformationStart = null;
+        }
     }
 
-    public void confirmScale()
-    {
-        mousePositionDuringScaleStart = null;
-        objectCenterDuringTransformationStart = null;
-        vertexPositionsDuringTransformationStart = null;
-    }
-
-    public void renderScaleIndicator(Point2D offset, double scale, GraphicsContext gc)
+    public void renderTransformationIndicator(Point2D offset, double scale, GraphicsContext gc)
     {
         double centerX = (objectCenterDuringTransformationStart.getX() * scale) + offset.getX();
         double centerY = (objectCenterDuringTransformationStart.getY() * scale) + offset.getY();
@@ -388,7 +385,7 @@ public class ObjectSelector extends Selector<Platform>
         gc.setLineDashes(0);
     }
 
-    public boolean isAnObjectBeingClicked()
+    public boolean areAnyObjectsBeingClicked()
     {
         return objectBeingClicked != null || vertexSelector.objectBeingClicked != null;
     }
@@ -403,8 +400,28 @@ public class ObjectSelector extends Selector<Platform>
         return mousePositionDuringScaleStart != null;
     }
 
+    public boolean isRotationInProgress()
+    {
+        return mousePositionDuringRotateStart != null;
+    }
+
+    public boolean isTransformationInProgress()
+    {
+        return mousePositionDuringScaleStart != null || mousePositionDuringRotateStart != null;
+    }
+
     public List<Platform> getComplexPlatforms()
     {
         return complexPlatforms;
+    }
+
+    public boolean areAnyObjectsSelected()
+    {
+        return selectedObjects.size() != 0;
+    }
+
+    public boolean canSelectedObjectsBeDeleted()
+    {
+        return vertexSelector.selectedObjects.size() == 0 || (selectedObjects.size() == 1 && vertexSelector.objects.size() - vertexSelector.selectedObjects.size() > 2);
     }
 }

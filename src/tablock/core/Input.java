@@ -22,20 +22,18 @@ public enum Input
     MOUSE_RIGHT,
     MOUSE_MIDDLE,
     DELETE,
+    UP,
     LEFT,
+    DOWN,
     RIGHT,
     JUMP,
-    R,
     S,
+    R,
     PAUSE,
-    UI_UP,
-    UI_LEFT,
-    UI_DOWN,
-    UI_RIGHT,
     UI_SELECT,
-    UI_BACK("nintendoB", "playstationCircle", "keyboardEscape", "mouseRight"),
-    UI_PAGE_LEFT("nintendoLeftButton", "playstationLeftButton", "keyboardQ"),
-    UI_PAGE_RIGHT("nintendoRightButton", "playstationRightButton", "keyboardE");
+    BACK("nintendoB", "playstationCircle", "keyboardEscape", "mouseRight"),
+    PREVIOUS_PAGE("nintendoLeftButton", "playstationLeftButton", "keyboardQ"),
+    NEXT_PAGE("nintendoRightButton", "playstationRightButton", "keyboardE");
     private static final ControllerManager controllers = new ControllerManager();
     private static Point2D mousePosition = new Point2D(-1, -1);
     private static Point2D scaledMousePosition;
@@ -126,27 +124,24 @@ public enum Input
         recordDigitalValue(MOUSE_MIDDLE, mouseButtonsPressed.contains(MouseButton.MIDDLE));
         recordDigitalValue(DELETE, keysPressed.contains(KeyCode.DELETE));
 
-        recordDigitalOrAnalogValue(LEFT, keysPressed.contains(KeyCode.A), controller.leftStickX, false);
-        recordDigitalOrAnalogValue(RIGHT, keysPressed.contains(KeyCode.D), controller.leftStickX, true);
+        recordDigitalOrAnalogValue(UP, keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.UP) || controller.dpadUp, controller.leftStickY, true);
+        recordDigitalOrAnalogValue(LEFT, keysPressed.contains(KeyCode.A) || keysPressed.contains(KeyCode.LEFT) || controller.dpadLeft, controller.leftStickX, false);
+        recordDigitalOrAnalogValue(DOWN, keysPressed.contains(KeyCode.S) || keysPressed.contains(KeyCode.DOWN) || controller.dpadDown, controller.leftStickY, false);
+        recordDigitalOrAnalogValue(RIGHT, keysPressed.contains(KeyCode.D) || keysPressed.contains(KeyCode.RIGHT) || controller.dpadRight, controller.leftStickX, true);
 
         recordDigitalValue(JUMP, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
         recordDigitalValue(PAUSE, keysPressed.contains(KeyCode.ESCAPE) || controller.start);
-        recordDigitalValue(R, keysPressed.contains(KeyCode.R));
         recordDigitalValue(S, keysPressed.contains(KeyCode.S));
-
-        recordDigitalOrAnalogValue(UI_UP, keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.UP) || controller.dpadUp, controller.leftStickY, true);
-        recordDigitalOrAnalogValue(UI_LEFT, keysPressed.contains(KeyCode.A) || keysPressed.contains(KeyCode.LEFT) || controller.dpadLeft, controller.leftStickX, false);
-        recordDigitalOrAnalogValue(UI_DOWN, keysPressed.contains(KeyCode.S) || keysPressed.contains(KeyCode.DOWN) || controller.dpadDown, controller.leftStickY, false);
-        recordDigitalOrAnalogValue(UI_RIGHT, keysPressed.contains(KeyCode.D) || keysPressed.contains(KeyCode.RIGHT) || controller.dpadRight, controller.leftStickX, true);
+        recordDigitalValue(R, keysPressed.contains(KeyCode.R));
 
         recordDigitalValue(UI_SELECT, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
-        recordDigitalValue(UI_BACK, keysPressed.contains(KeyCode.ESCAPE) || MOUSE_RIGHT.isActive() || isBackButtonPressed());
-        recordDigitalValue(UI_PAGE_LEFT, keysPressed.contains(KeyCode.Q) || controller.lb);
-        recordDigitalValue(UI_PAGE_RIGHT, keysPressed.contains(KeyCode.E) || controller.rb);
+        recordDigitalValue(BACK, keysPressed.contains(KeyCode.ESCAPE) || MOUSE_RIGHT.isActive() || isBackButtonPressed());
+        recordDigitalValue(PREVIOUS_PAGE, keysPressed.contains(KeyCode.Q) || controller.lb);
+        recordDigitalValue(NEXT_PAGE, keysPressed.contains(KeyCode.E) || controller.rb);
 
         if(forceMouseVisible)
             usingMouseControls = true;
-        else if(UI_UP.isActive() || UI_LEFT.isActive() || UI_DOWN.isActive() || UI_RIGHT.isActive() || forceMouseHidden)
+        else if(UP.isActive() || LEFT.isActive() || DOWN.isActive() || RIGHT.isActive() || forceMouseHidden)
             usingMouseControls = false;
 
         scene.setCursor(usingMouseControls ? Cursor.DEFAULT : Cursor.NONE);

@@ -88,6 +88,7 @@ public class Platform extends Selectable
     {
         simplePolygon = true;
 
+        vertexLoop:
         for(int i = 0; i < vertexCount; i++)
         {
             double x1 = worldXValues[i];
@@ -95,7 +96,7 @@ public class Platform extends Selectable
             double x2 = worldXValues[(i + 1) % vertexCount];
             double y2 = worldYValues[(i + 1) % vertexCount];
 
-            for(int j = 0; j < vertexCount && simplePolygon; j++)
+            for(int j = 0; j < vertexCount; j++)
             {
                 double x3 = worldXValues[j];
                 double y3 = worldYValues[j];
@@ -105,8 +106,12 @@ public class Platform extends Selectable
                 double t = (((x1 - x3) * (y3 - y4)) - ((y1 - y3) * (x3 - x4))) / a;
                 double u = (((x1 - x3) * (y1 - y2)) - ((y1 - y3) * (x1 - x2))) / a;
 
-                if(t < 1 && t > 0 && u < 1 && u > 0)
+                if((t < 1 && t > 0 && u < 1 && u > 0) || (i != j && x1 == x3 && y1 == y3))
+                {
                     simplePolygon = false;
+
+                    break vertexLoop;
+                }
             }
         }
 
@@ -131,9 +136,14 @@ public class Platform extends Selectable
     {
         Vector2[] vertices = new Vector2[vertexCount];
 
-        for(int i = 0; i < worldXValues.length; i++)
+        for(int i = 0; i < vertexCount; i++)
             vertices[i] = new Vector2(worldXValues[i], -worldYValues[i]);
 
         return vertices;
+    }
+
+    public boolean isSimplePolygon()
+    {
+        return simplePolygon;
     }
 }

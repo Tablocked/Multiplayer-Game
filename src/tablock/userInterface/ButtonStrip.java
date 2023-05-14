@@ -50,8 +50,8 @@ public class ButtonStrip
 
     public void render(GraphicsContext gc)
     {
-        updateIndex(Orientation.VERTICAL, Input.UI_DOWN, Input.UI_UP);
-        updateIndex(Orientation.HORIZONTAL, Input.UI_RIGHT, Input.UI_LEFT);
+        updateIndex(Orientation.VERTICAL, Input.DOWN, Input.UP);
+        updateIndex(Orientation.HORIZONTAL, Input.RIGHT, Input.LEFT);
 
         index = Math.max(index, 0);
         index = Math.min(index, buttons.length - 1);

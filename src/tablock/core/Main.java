@@ -16,11 +16,22 @@ import java.nio.file.Path;
 
 public class Main extends Application
 {
+	public static final Image PLAY_FROM_START_BUTTON_TEXTURE = getTexture("playFromStartButton");
+	public static final Image PLAY_FROM_HERE_BUTTON_TEXTURE = getTexture("playFromHereButton");
+	public static final Image OBJECTS_BUTTON_TEXTURE = getTexture("objectsButton");
+	public static final Image SAVE_BUTTON_TEXTURE = getTexture("saveButton");
+	public static final Image PLATFORM_BUTTON_TEXTURE = getTexture("platformButton");
 	public static final Image WARNING_TEXTURE = getTexture("warning");
 	public static final Image START_POINT_TEXTURE = getTexture("startPoint");
 	public static final Image VERTEX_TEXTURE = getTexture("vertex");
 	public static final Image ADD_VERTEX_TEXTURE = getTexture("addVertex");
 	public static final Image CHECKMARK_TEXTURE = getTexture("checkmark");
+	public static final Image MOUSE_RIGHT_TEXTURE = getTexture("mouseRight");
+	public static final Image MOUSE_MIDDLE_TEXTURE = getTexture("mouseMiddle");
+	public static final Image KEYBOARD_DELETE_TEXTURE = getTexture("keyboardDelete");
+	public static final Image KEYBOARD_S_TEXTURE = getTexture("keyboardS");
+	public static final Image KEYBOARD_R_TEXTURE = getTexture("keyboardR");
+	public static final Image KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE = getTexture("keyboardShiftAndMouseLeft");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 
 	public static void main(String[] args)

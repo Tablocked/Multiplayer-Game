@@ -34,17 +34,18 @@ public class Selector<T extends Selectable>
     {
         hoveredObjects.clear();
 
-        for(T object : objects)
-            if(object.getShape(scale).contains(worldMouse) && objectsAreSelectable)
-            {
-                if(Input.MOUSE_LEFT.wasJustActivated())
+        if(objectsAreSelectable)
+            for(T object : objects)
+                if(object.getShape(scale).contains(worldMouse))
                 {
-                    objectBeingClicked = object;
-                    previousMousePositionDuringDrag = worldMouse;
-                }
+                    if(Input.MOUSE_LEFT.wasJustActivated())
+                    {
+                        objectBeingClicked = object;
+                        previousMousePositionDuringDrag = worldMouse;
+                    }
 
-                hoveredObjects.add(object);
-            }
+                    hoveredObjects.add(object);
+                }
     }
 
     public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, boolean forceObjectToBeDeselected, Point2D worldMouse)
