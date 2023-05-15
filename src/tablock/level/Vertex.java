@@ -5,7 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Shape;
-import tablock.core.Main;
+import tablock.network.Client;
 
 import java.io.Serial;
 
@@ -24,7 +24,7 @@ public class Vertex extends Selectable
 
     public static void renderAddVertex(double x, double y, GraphicsContext gc)
     {
-        gc.drawImage(Main.ADD_VERTEX_TEXTURE, x - 12.5, y - 12.5);
+        gc.drawImage(Client.ADD_VERTEX_TEXTURE, x - 12.5, y - 12.5);
         gc.setFill(Color.rgb(255, 200, 0, 0.5));
         gc.fillOval(x - 15, y - 15, 30, 30);
     }
@@ -40,7 +40,7 @@ public class Vertex extends Selectable
     {
         gc.setFill(Color.rgb(255, 200, 0));
         gc.fillOval(platform.screenXValues[index] - 15, platform.screenYValues[index] - 15, 30, 30);
-        gc.drawImage(Main.VERTEX_TEXTURE, platform.screenXValues[index] - 12.5, platform.screenYValues[index] - 12.5);
+        gc.drawImage(Client.VERTEX_TEXTURE, platform.screenXValues[index] - 12.5, platform.screenYValues[index] - 12.5);
     }
 
     @Override

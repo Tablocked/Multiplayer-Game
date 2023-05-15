@@ -12,6 +12,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
 import javafx.stage.Screen;
+import tablock.network.Client;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,9 +57,9 @@ public enum Input
 
     Input(String nintendoImageName, String playStationImageName, String keyboardImageName)
     {
-        this.nintendoImage = Main.getTexture(nintendoImageName);
-        this.playStationImage = Main.getTexture(playStationImageName);
-        this.keyboardImage = Main.getTexture(keyboardImageName);
+        this.nintendoImage = Client.getTexture(nintendoImageName);
+        this.playStationImage = Client.getTexture(playStationImageName);
+        this.keyboardImage = Client.getTexture(keyboardImageName);
 
         mouseImage = keyboardImage;
     }
@@ -67,7 +68,7 @@ public enum Input
     {
         this(nintendoImageName, playStationImageName, keyboardImageName);
 
-        this.mouseImage = Main.getTexture(mouseImageName);
+        this.mouseImage = Client.getTexture(mouseImageName);
     }
 
     public static void initialize(Scene scene)

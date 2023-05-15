@@ -1,22 +1,37 @@
 package tablock.gameState;
 
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
-public class TitleScreen implements GameState
+public class TitleScreen extends GameState
 {
+    public TitleScreen() {}
+
+    public TitleScreen(Client client)
+    {
+        this.client = client;
+    }
+
     private final ButtonStrip buttonStrip = new ButtonStrip
     (
         ButtonStrip.Orientation.VERTICAL,
 
-        new TextButton(960, 440, "Create", 100, () -> Renderer.setCurrentState(new LevelSelectScreen())),
-        new TextButton(960, 640, "Quit", 100, () -> System.exit(0))
+        new TextButton(960, 340, "Host and Create", 100, () -> Renderer.setCurrentState(new LevelSelectScreen())),
+        new TextButton(960, 540, "Join", 100, () -> Renderer.setCurrentState(new JoinScreen())),
+        new TextButton(960, 740, "Quit", 100, () -> System.exit(0))
     );
 
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
+        gc.setFill(Color.BLACK);
+        gc.setFont(Font.font("Arial", 50));
+        gc.fillText(client.getName(), 960, 100);
+
         buttonStrip.render(gc);
     }
 }

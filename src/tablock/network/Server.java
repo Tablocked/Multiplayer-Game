@@ -1,41 +1,44 @@
 package tablock.network;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.util.Duration;
-import tablock.network.packet.Packet;
-import tablock.network.packet.server.PlayerPositionsPacket;
+import javafx.stage.Stage;
 
 import java.net.DatagramPacket;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 
 public class Server extends Network
 {
-	private final List<Player> players = new ArrayList<>();
-	
-	public Server()
-	{
-		super(true);
+    int clientCount = 0;
 
-		Timeline timeline = new Timeline(new KeyFrame(Duration.millis(10), (event) -> tick()));
+    public static void main(String[] args)
+    {
+        launch(args);
+    }
 
-		timeline.setCycleCount(Timeline.INDEFINITE);
-		timeline.play();
-	}
+    public Server() throws SocketException
+    {
+        super(new DatagramSocket(PORT));
+    }
 
-	private void tick()
-	{
-		List<Player> copiedPlayers = new ArrayList<>(this.players);
+    @Override
+    void respondToPacket(DatagramPacket receivedPacket)
+    {
+        ClientPacket.values()[receivedPacket.getData()[0]].respondToClientPacket(decodePacket(receivedPacket), receivedPacket, this);
+    }
 
-		copiedPlayers.forEach((player) -> sendPacket(new PlayerPositionsPacket(copiedPlayers), player.getIpAddress(), player.getPort()));
-	}
-	
-	@Override
-	protected void respondToPacket(byte[] packet, DatagramPacket receivedPacket)
-	{
-		Packet.ClientPacket clientPacket = (Packet.ClientPacket) deserializePacket(packet);
-		
-		clientPacket.respondToClientPacket(this, receivedPacket, players);
-	}
+    @Override
+    public void start(Stage stage)
+    {
+        super.start(stage);
+
+        stage.setTitle("Server");
+        stage.setWidth(960);
+        stage.setHeight(540);
+        stage.show();
+    }
+
+    void send(ServerPacket serverPacket, DatagramPacket receivedPacket, byte[]... dataTypes)
+    {
+        send(serverPacket.ordinal(), receivedPacket.getAddress(), receivedPacket.getPort(), dataTypes);
+    }
 }

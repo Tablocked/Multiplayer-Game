@@ -5,11 +5,11 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import tablock.core.Input;
-import tablock.core.Main;
 import tablock.level.Level;
 import tablock.level.ObjectSelector;
 import tablock.level.Platform;
 import tablock.level.Vertex;
+import tablock.network.Client;
 import tablock.userInterface.*;
 
 import java.io.IOException;
@@ -19,9 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateScreen implements GameState
+public class CreateScreen extends GameState
 {
-    final Level level;
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 540);
     private Point2D mousePositionDuringDragStart;
@@ -36,14 +35,14 @@ public class CreateScreen implements GameState
     private CircularButtonStrip currentInterface;
     private final List<Point2D> placedPlatformVertices = new ArrayList<>();
     private final ObjectSelector objectSelector;
-    private final ImageButton playFromStartButton = new ImageButton(Main.PLAY_FROM_START_BUTTON_TEXTURE, () -> switchToPlayScreen(0, 0), "Play from start");
-    private final ImageButton playFromHereButton = new ImageButton(Main.PLAY_FROM_HERE_BUTTON_TEXTURE, () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
-    private final ImageButton platformButton = new ImageButton(Main.PLATFORM_BUTTON_TEXTURE, () -> platformMode = !platformMode, "Platform");
+    private final ImageButton playFromStartButton = new ImageButton(Client.PLAY_FROM_START_BUTTON_TEXTURE, () -> switchToPlayScreen(0, 0), "Play from start");
+    private final ImageButton playFromHereButton = new ImageButton(Client.PLAY_FROM_HERE_BUTTON_TEXTURE, () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
+    private final ImageButton platformButton = new ImageButton(Client.PLATFORM_BUTTON_TEXTURE, () -> platformMode = !platformMode, "Platform");
     private final InputIndicator inputIndicator = new InputIndicator();
     private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
     private final CircularButtonStrip mainInterface;
-
     private final ButtonStrip pauseButtons;
+    private final Level level;
 
     public CreateScreen(Level level, Path levelPath)
     {
@@ -55,8 +54,8 @@ public class CreateScreen implements GameState
         (
             playFromStartButton,
             playFromHereButton,
-            new ImageButton(Main.OBJECTS_BUTTON_TEXTURE, () -> currentInterface = objectInterface, "Objects"),
-            new ImageButton(Main.SAVE_BUTTON_TEXTURE, () -> saveLevel(levelPath),"Save")
+            new ImageButton(Client.OBJECTS_BUTTON_TEXTURE, () -> currentInterface = objectInterface, "Objects"),
+            new ImageButton(Client.SAVE_BUTTON_TEXTURE, () -> saveLevel(levelPath),"Save")
         );
 
         pauseButtons = new ButtonStrip
@@ -105,7 +104,7 @@ public class CreateScreen implements GameState
     {
         try
         {
-            Files.write(levelPath, Objects.requireNonNull(Main.serializeObject(level)));
+            Files.write(levelPath, Objects.requireNonNull(Client.serializeObject(level)));
         }
         catch(IOException exception)
         {
@@ -316,7 +315,7 @@ public class CreateScreen implements GameState
                     if(worldVertex == worldFirstVertex)
                     {
                         gc.fillOval(screenVertex.getX() - 20, screenVertex.getY() - 20, 40, 40);
-                        gc.drawImage(Main.CHECKMARK_TEXTURE, screenVertex.getX() - 15, screenVertex.getY() - 15);
+                        gc.drawImage(Client.CHECKMARK_TEXTURE, screenVertex.getX() - 15, screenVertex.getY() - 15);
 
                         if(firstVertexBeingHovered)
                         {
@@ -369,13 +368,13 @@ public class CreateScreen implements GameState
             mouseNeverMovedDuringSelection = true;
         }
 
-        gc.drawImage(Main.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
+        gc.drawImage(Client.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
 
         for(Platform platform : objectSelector.getComplexPlatforms())
         {
             Point2D center = platform.calculateScreenCenter();
 
-            gc.drawImage(Main.WARNING_TEXTURE, center.getX() - 25, center.getY() - 25);
+            gc.drawImage(Client.WARNING_TEXTURE, center.getX() - 25, center.getY() - 25);
         }
 
         if(interfaceOpen)
@@ -399,8 +398,8 @@ public class CreateScreen implements GameState
 
             if(objectSelector.getComplexPlatforms().size() != 0 && currentInterface == mainInterface)
             {
-                gc.drawImage(Main.WARNING_TEXTURE, playFromStartButton.getX(), playFromStartButton.getY());
-                gc.drawImage(Main.WARNING_TEXTURE, playFromHereButton.getX(), playFromHereButton.getY());
+                gc.drawImage(Client.WARNING_TEXTURE, playFromStartButton.getX(), playFromStartButton.getY());
+                gc.drawImage(Client.WARNING_TEXTURE, playFromHereButton.getX(), playFromHereButton.getY());
             }
         }
         else
@@ -418,17 +417,17 @@ public class CreateScreen implements GameState
             if(objectSelector.areAnyObjectsSelected() && !Input.MOUSE_MIDDLE.isActive() && placedPlatformVertices.size() == 0 && mousePositionDuringSelectionStart == null && currentInterface.areNoButtonsSelected())
             {
                 if(objectSelector.canSelectedObjectsBeDeleted() && objectsAreSelectable)
-                    inputIndicator.add("Delete", Main.KEYBOARD_DELETE_TEXTURE);
+                    inputIndicator.add("Delete", Client.KEYBOARD_DELETE_TEXTURE);
 
                 if(!objectSelector.areAnyObjectsBeingClicked())
                 {
-                    inputIndicator.add(objectSelector.isScaleInProgress() ? "Confirm Scale" : "Scale", Main.KEYBOARD_S_TEXTURE);
-                    inputIndicator.add(objectSelector.isRotationInProgress() ? "Confirm Rotation" : "Rotate", Main.KEYBOARD_R_TEXTURE);
+                    inputIndicator.add(objectSelector.isScaleInProgress() ? "Confirm Scale" : "Scale", Client.KEYBOARD_S_TEXTURE);
+                    inputIndicator.add(objectSelector.isRotationInProgress() ? "Confirm Rotation" : "Rotate", Client.KEYBOARD_R_TEXTURE);
                 }
             }
 
             if(currentInterface.areNoButtonsSelected())
-                inputIndicator.add("Pan View", Main.MOUSE_MIDDLE_TEXTURE);
+                inputIndicator.add("Pan View", Client.MOUSE_MIDDLE_TEXTURE);
 
             if(!objectSelector.areAnyObjectsBeingClicked())
             {
@@ -448,13 +447,18 @@ public class CreateScreen implements GameState
                 else
                     mouseRightText = "Open Interface";
 
-                inputIndicator.add(mouseRightText, Main.MOUSE_RIGHT_TEXTURE);
+                inputIndicator.add(mouseRightText, Client.MOUSE_RIGHT_TEXTURE);
             }
 
             if(!Input.MOUSE_MIDDLE.isActive() && currentInterface.areNoButtonsSelected() && placedPlatformVertices.size() == 0 && !objectSelector.isTransformationInProgress())
-                inputIndicator.add( "Select Multiple", Main.KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE);
+                inputIndicator.add( "Select Multiple", Client.KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE);
 
             inputIndicator.render(gc);
         }
+    }
+
+    public Level getLevel()
+    {
+        return level;
     }
 }

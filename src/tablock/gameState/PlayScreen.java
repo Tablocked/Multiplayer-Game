@@ -10,13 +10,12 @@ import tablock.core.Input;
 import tablock.core.Simulation;
 import tablock.level.Level;
 import tablock.level.Platform;
-import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
 import java.util.List;
 
-public class PlayScreen implements GameState
+public class PlayScreen extends GameState
 {
     private long frameTime = System.nanoTime();
     private boolean paused = false;
@@ -46,7 +45,7 @@ public class PlayScreen implements GameState
     {
         simulation = new Simulation(createPlayer(startX, -startY));
         this.createScreen = createScreen;
-        this.level = createScreen.level;
+        this.level = createScreen.getLevel();
 
         addObjectsToSimulation();
     }
@@ -90,44 +89,6 @@ public class PlayScreen implements GameState
 
             simulation.addBody(body);
         }
-    }
-
-//    public PlayScreen()
-//    {
-//        //Server server = new Server();
-//
-//        //server.start();
-//
-//        Client client = new Client("localhost");
-//
-////        stage.setOnCloseRequest((event) ->
-////        {
-////            client.closeSocket();
-////            server.closeSocket();
-////        });
-//
-//        init(client);
-//    }
-
-//    public PlayScreen(Stage stage, String addressName)
-//    {
-//        super(stage);
-//
-//        Client client = new Client(addressName);
-//
-//        stage.setOnCloseRequest((event) -> client.closeSocket());
-//
-//        init(client);
-//    }
-
-    private void init(Client client)
-    {
-//        simulation.addBody(new Platform(299, -500, new Vector2(0, -300), new Vector2(702, -300), new Vector2(702, 0), new Vector2(0, 0)));
-//        simulation.addBody(new Platform(1000, -300, new Vector2(0, -500), new Vector2(400, -300), new Vector2(400, -200), new Vector2(0, 0)));
-//        simulation.addBody(new Platform(50, -300, new Vector2(100, -500), new Vector2(250, -500), new Vector2(250, 0), new Vector2(0, 0)));
-
-        //client.start();
-        //client.sendPacket(new ConnectPacket());
     }
 
     @Override

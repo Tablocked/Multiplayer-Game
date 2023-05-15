@@ -112,10 +112,13 @@ public class ObjectSelector extends Selector<Platform>
 
                     objectCenterDuringTransformationStart = new Point2D(sumX / totalVertexCount, sumY / totalVertexCount);
                 }
-                else
+
+                if((mousePositionDuringScaleStart == null && mousePositionDuringRotateStart == null) || objectCenterDuringTransformationStart.equals(mousePositionDuringScaleStart) || objectCenterDuringTransformationStart.equals(mousePositionDuringRotateStart))
                 {
                     vertexPositionsDuringTransformationStart = null;
                     objectCenterDuringTransformationStart = null;
+                    mousePositionDuringScaleStart = null;
+                    mousePositionDuringRotateStart = null;
                 }
             }
 
@@ -310,9 +313,9 @@ public class ObjectSelector extends Selector<Platform>
 
     public void transformSelectedObjects(Point2D worldMouse)
     {
-        double transformation = -1;
+        double transformation = 0;
 
-        if(worldMouse != null)
+        if(worldMouse != null && !worldMouse.equals(objectCenterDuringTransformationStart))
         {
             if(mousePositionDuringScaleStart != null)
             {
@@ -339,26 +342,24 @@ public class ObjectSelector extends Selector<Platform>
 
             for(int j = 0; j < platform.vertexCount; j++)
             {
-                Point2D transformedVertex = null;
+                Point2D transformedVertex = startingVertices[j];
 
-                if(worldMouse == null)
-                    transformedVertex = startingVertices[j];
-                else if(mousePositionDuringScaleStart != null)
-                    transformedVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart).multiply(transformation).add(objectCenterDuringTransformationStart);
-                else if(mousePositionDuringRotateStart != null)
+                if(worldMouse != null)
                 {
-                    Point2D localVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart);
-                    double x = (localVertex.getX() * Math.cos(transformation)) - (localVertex.getY() * Math.sin(transformation));
-                    double y = (localVertex.getX() * Math.sin(transformation)) + (localVertex.getY() * Math.cos(transformation));
+                    if(mousePositionDuringScaleStart != null)
+                        transformedVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart).multiply(transformation).add(objectCenterDuringTransformationStart);
+                    else if(mousePositionDuringRotateStart != null)
+                    {
+                        Point2D localVertex = startingVertices[j].subtract(objectCenterDuringTransformationStart);
+                        double x = (localVertex.getX() * Math.cos(transformation)) - (localVertex.getY() * Math.sin(transformation));
+                        double y = (localVertex.getX() * Math.sin(transformation)) + (localVertex.getY() * Math.cos(transformation));
 
-                    transformedVertex = new Point2D(x, y).add(objectCenterDuringTransformationStart);
+                        transformedVertex = new Point2D(x, y).add(objectCenterDuringTransformationStart);
+                    }
                 }
 
-                if(transformedVertex != null)
-                {
-                    platform.worldXValues[j] = transformedVertex.getX();
-                    platform.worldYValues[j] = transformedVertex.getY();
-                }
+                platform.worldXValues[j] = transformedVertex.getX();
+                platform.worldYValues[j] = transformedVertex.getY();
             }
         }
 

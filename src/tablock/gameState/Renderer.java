@@ -23,6 +23,8 @@ public class Renderer
 
     public static void setCurrentState(GameState currentState)
     {
+        currentState.client = Renderer.currentState.client;
+
         Renderer.currentState = currentState;
     }
 

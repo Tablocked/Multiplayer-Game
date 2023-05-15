@@ -1,8 +1,11 @@
 package tablock.gameState;
 
 import javafx.scene.canvas.GraphicsContext;
+import tablock.network.Client;
 
-public interface GameState
+public abstract class GameState
 {
-    void renderNextFrame(GraphicsContext gc);
+    Client client;
+
+    abstract void renderNextFrame(GraphicsContext gc);
 }
