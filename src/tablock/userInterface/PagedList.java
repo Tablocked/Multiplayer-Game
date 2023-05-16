@@ -38,7 +38,7 @@ public abstract class PagedList<T>
     }
 
     protected abstract void onItemButtonActivation(T item, TextButton levelButton, int yPosition);
-    protected abstract String getItemButtonName(T item);
+    protected abstract String getItemButtonName(T item, int index);
 
     public void createButtons()
     {
@@ -57,8 +57,9 @@ public abstract class PagedList<T>
 
         for(int i = 0; i < levelsOnPage; i++)
         {
-            T item = list.get(((page - 1) * 5) + i);
+            int index = ((page - 1) * 5) + i;
             int yPosition = 200 + (i * 120);
+            T item = list.get(index);
 
             TextButton levelButton = new TextButton(960, yPosition, null, 80, Color.WHITE, false, null);
 
@@ -66,7 +67,7 @@ public abstract class PagedList<T>
             levelButton.setWidth(1520);
             levelButton.setSelectedColor(Color.rgb(0, 80, 0));
             levelButton.setDeselectedColor(Color.rgb(80, 0 , 0));
-            levelButton.setText(getItemButtonName(item));
+            levelButton.setText(getItemButtonName(item, index));
 
             levelButtons[i] = levelButton;
         }

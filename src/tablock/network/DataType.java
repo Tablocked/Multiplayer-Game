@@ -5,38 +5,26 @@ public enum DataType
     INTEGER
     {
         @Override
-        byte[] encode(Object data)
+        byte[] toByteArray(Object data)
         {
             int integer = (int) data;
 
-            return encode(new byte[]
-            {
-                (byte) ((integer >> 24) & 0xff),
-                (byte) ((integer >> 16) & 0xff),
-                (byte) ((integer >> 8) & 0xff),
-                (byte) ((integer) & 0xff),
-            });
+            return new byte[]{(byte) (integer >> 24), (byte) (integer >> 16), (byte) (integer >> 8), (byte) integer};
         }
 
         @Override
         Object decode(byte[] data)
         {
-            return
-            (
-                (0xff & data[0]) << 24  |
-                (0xff & data[1]) << 16  |
-                (0xff & data[2]) << 8   |
-                (0xff & data[3])
-            );
+            return (data[0] & 255) << 24 | (data[1] & 255) << 16 | (data[2] & 255) << 8 | (data[3] & 255);
         }
     },
 
     STRING
     {
         @Override
-        byte[] encode(Object data)
+        byte[] toByteArray(Object data)
         {
-            return encode(((String) data).getBytes());
+            return ((String) data).getBytes();
         }
 
         @Override
@@ -44,18 +32,35 @@ public enum DataType
         {
             return new String(data);
         }
+    },
+
+    BYTE_ARRAY
+    {
+        @Override
+        byte[] toByteArray(Object data)
+        {
+            return (byte[]) data;
+        }
+
+        @Override
+        Object decode(byte[] data)
+        {
+            return data;
+        }
     };
 
-    abstract byte[] encode(Object data);
+    abstract byte[] toByteArray(Object data);
     abstract Object decode(byte[] data);
 
-    byte[] encode(byte[] data)
+    public byte[] encode(Object data)
     {
-        byte[] encodedData = new byte[data.length + 2];
+        byte[] bytes = toByteArray(data);
+        byte[] encodedData = new byte[bytes.length + 3];
 
-        encodedData[0] = (byte) data.length;
+        encodedData[0] = (byte) (bytes.length >> 8);
+        encodedData[1] = (byte) bytes.length;
 
-        System.arraycopy(data, 0, encodedData, 1, data.length);
+        System.arraycopy(bytes, 0, encodedData, 2, bytes.length);
 
         encodedData[encodedData.length - 1] = (byte) ordinal();
 

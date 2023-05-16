@@ -14,6 +14,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Client extends Network
 {
@@ -35,6 +37,8 @@ public class Client extends Network
 	public static final Image KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE = getTexture("keyboardShiftAndMouseLeft");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 	String name;
+	List<Integer> hostIdentifiers = new ArrayList<>();
+	List<String > hostedLevelNames = new ArrayList<>();
 	private final InetAddress inetAddress;
 
 	private static void createFolder(String path)
@@ -116,9 +120,9 @@ public class Client extends Network
 	}
 
 	@Override
-	void respondToPacket(DatagramPacket receivedPacket)
+	void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
 	{
-		ServerPacket.values()[receivedPacket.getData()[0]].respondToServerPacket(decodePacket(receivedPacket), this);
+		ServerPacket.values()[data[1]].respondToServerPacket(decodePacket(data, dataLength), this);
 	}
 
 	@Override
@@ -127,7 +131,7 @@ public class Client extends Network
 		super.start(stage);
 
 		Canvas canvas = new Canvas(1920, 1080);
-		Renderer renderer = new Renderer(new TitleScreen(this), canvas.getGraphicsContext2D());
+		Renderer renderer = new Renderer(new TitleScreen(), this, canvas.getGraphicsContext2D());
 		Scene scene = new Scene(new Group(canvas));
 
 		createFolder("");
@@ -143,7 +147,7 @@ public class Client extends Network
 		stage.setFullScreen(true);
 		stage.show();
 
-		send(ClientPacket.CONNECT);
+		send(ClientPacket.CLIENT_NAME);
 	}
 
 	public void send(ClientPacket clientPacket, byte[]... dataTypes)
@@ -154,5 +158,15 @@ public class Client extends Network
 	public String getName()
 	{
 		return name;
+	}
+
+	public List<Integer> getHostIdentifiers()
+	{
+		return hostIdentifiers;
+	}
+
+	public List<String> getHostedLevelNames()
+	{
+		return hostedLevelNames;
 	}
 }

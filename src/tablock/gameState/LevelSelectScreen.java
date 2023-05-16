@@ -9,6 +9,8 @@ import tablock.core.FilePointer;
 import tablock.core.Input;
 import tablock.level.Level;
 import tablock.network.Client;
+import tablock.network.ClientPacket;
+import tablock.network.DataType;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.PagedList;
 import tablock.userInterface.TextButton;
@@ -48,7 +50,21 @@ public class LevelSelectScreen extends GameState
         protected void onItemButtonActivation(File levelFile, TextButton levelButton, int yPosition)
         {
             FilePointer levelPointer = new FilePointer(levelFile);
-            TextButton playButton = new TextButton("Host", 50, () -> Renderer.setCurrentState(new PlayScreen(deserializeLevel(levelPointer.getFile()))));
+
+            TextButton playButton = new TextButton("Host", 50, () ->
+            {
+                try
+                {
+                    CLIENT.send(ClientPacket.HOST, DataType.BYTE_ARRAY.encode(Files.readAllBytes(levelPointer.getFile().toPath())), DataType.STRING.encode(levelPointer.getFile().getName()));
+
+                    Renderer.setCurrentState(new PlayScreen(deserializeLevel(levelPointer.getFile())));
+                }
+                catch(IOException exception)
+                {
+                    exception.printStackTrace();
+                }
+            });
+
             TextButton editButton = new TextButton("Edit", 50, () -> Renderer.setCurrentState(new CreateScreen(deserializeLevel(levelPointer.getFile()), levelPointer.getFile().toPath())));
             TextButton renameButton = new TextButton("Rename", 50, null);
             TextButton deleteButton = new TextButton("Delete", 50, () -> onDeleteButtonActivation(yPosition, levelPointer.getFile()));
@@ -63,9 +79,9 @@ public class LevelSelectScreen extends GameState
         }
 
         @Override
-        protected String getItemButtonName(File item)
+        protected String getItemButtonName(File levelFile, int index)
         {
-            return item.getName();
+            return levelFile.getName();
         }
     };
 

@@ -5,7 +5,7 @@ import tablock.network.Client;
 
 public abstract class GameState
 {
-    Client client;
+    static Client CLIENT;
 
     abstract void renderNextFrame(GraphicsContext gc);
 }

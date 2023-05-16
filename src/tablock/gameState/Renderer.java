@@ -8,14 +8,16 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Screen;
 import tablock.core.Input;
+import tablock.network.Client;
 
 public class Renderer
 {
     private static GameState currentState;
     private final GraphicsContext gc;
 
-    public Renderer(GameState currentState, GraphicsContext gc)
+    public Renderer(GameState currentState, Client client, GraphicsContext gc)
     {
+        GameState.CLIENT = client;
         Renderer.currentState = currentState;
 
         this.gc = gc;
@@ -23,8 +25,6 @@ public class Renderer
 
     public static void setCurrentState(GameState currentState)
     {
-        currentState.client = Renderer.currentState.client;
-
         Renderer.currentState = currentState;
     }
 
@@ -35,7 +35,7 @@ public class Renderer
 
         gc.scale(scaleFactor, scaleFactor);
 
-        AnimationTimer gameLoop = new AnimationTimer()
+        AnimationTimer animationTimer = new AnimationTimer()
         {
             @Override
             public void handle(long l)
@@ -50,7 +50,7 @@ public class Renderer
             }
         };
 
-        gameLoop.start();
+        animationTimer.start();
     }
 
     public static Bounds getTextShape(String text, Font font)

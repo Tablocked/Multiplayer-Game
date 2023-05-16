@@ -3,19 +3,11 @@ package tablock.gameState;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import tablock.network.Client;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
 public class TitleScreen extends GameState
 {
-    public TitleScreen() {}
-
-    public TitleScreen(Client client)
-    {
-        this.client = client;
-    }
-
     private final ButtonStrip buttonStrip = new ButtonStrip
     (
         ButtonStrip.Orientation.VERTICAL,
@@ -30,7 +22,7 @@ public class TitleScreen extends GameState
     {
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font("Arial", 50));
-        gc.fillText(client.getName(), 960, 100);
+        gc.fillText(CLIENT.getName(), 960, 100);
 
         buttonStrip.render(gc);
     }
