@@ -15,37 +15,36 @@ import tablock.userInterface.TextButton;
 
 import java.util.List;
 
-public class PlayScreen extends GameState
+public class PlayState extends GameState
 {
     private long frameTime = System.nanoTime();
     private boolean paused = false;
     private final Simulation simulation;
-    private final CreateScreen createScreen;
+    private final CreateState createState;
     private final Level level;
 
     private final ButtonStrip buttonStrip = new ButtonStrip
     (
         ButtonStrip.Orientation.VERTICAL,
 
-        new TextButton(960, 340, "Resume", 100, () -> paused = false),
-        new TextButton(960, 540, "Quit To Main Menu", 100, () -> Renderer.setCurrentState(new TitleScreen())),
-        new TextButton(960, 740, "Quit To Desktop", 100, () -> System.exit(0))
+        new TextButton(960, 440, "Resume", 100, () -> paused = false),
+        new TextButton(960, 640, "Quit To Main Menu", 100, () -> CLIENT.switchGameState(new TitleState()))
     );
 
-    public PlayScreen(Level level)
+    public PlayState(Level level)
     {
         simulation = new Simulation(createPlayer(0, 0));
-        createScreen = null;
+        createState = null;
         this.level = level;
 
         addObjectsToSimulation();
     }
 
-    public PlayScreen(CreateScreen createScreen, double startX, double startY)
+    public PlayState(CreateState createState, double startX, double startY)
     {
         simulation = new Simulation(createPlayer(startX, -startY));
-        this.createScreen = createScreen;
-        this.level = createScreen.getLevel();
+        this.createState = createState;
+        this.level = createState.getLevel();
 
         addObjectsToSimulation();
     }
@@ -100,7 +99,7 @@ public class PlayScreen extends GameState
 
         if(Input.PAUSE.wasJustActivated())
         {
-            if(createScreen == null)
+            if(createState == null)
             {
                 paused = !paused;
 
@@ -112,7 +111,7 @@ public class PlayScreen extends GameState
 
                 Input.setForceMouseHidden(false);
 
-                Renderer.setCurrentState(createScreen);
+                CLIENT.switchGameState(createState);
 
                 return;
             }
@@ -129,8 +128,8 @@ public class PlayScreen extends GameState
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
-        double offsetX = -simulation.getPlayerCenter().x + 935;
-        double offsetY = simulation.getPlayerCenter().y + 515;
+        double offsetX = -simulation.getPlayerCenter().x + 960;
+        double offsetY = simulation.getPlayerCenter().y + 540;
 
         gc.beginPath();
 
@@ -142,28 +141,6 @@ public class PlayScreen extends GameState
         gc.closePath();
 
         level.render(new Point2D(offsetX, offsetY), 1, gc);
-
-//        for(Body body : simulation.getBodies())
-//        {
-//            for(Fixture fixture : body.getFixtures())
-//            {
-//                gc.beginPath();
-//
-//                for(Vector2 vertex : ((Polygon) fixture.getShape()).getVertices())
-//                    gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
-//
-//                Vector2 vertex = ((Polygon) fixture.getShape()).getVertices()[0];
-//
-//                gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
-//
-//                gc.setFill(Color.DARKRED);
-//                gc.setStroke(Color.BLACK);
-//                gc.setLineWidth(1);
-//                gc.fill();
-//                gc.stroke();
-//                gc.closePath();
-//            }
-//        }
 
         if(paused)
         {

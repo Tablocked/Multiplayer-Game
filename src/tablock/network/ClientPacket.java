@@ -1,5 +1,8 @@
 package tablock.network;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum ClientPacket
 {
     CLIENT_NAME
@@ -11,17 +14,28 @@ public enum ClientPacket
         }
     },
 
+    DISCONNECT
+    {
+        @Override
+        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
+        {
+            server.clients.remove(clientIdentifier);
+        }
+    },
+
     LOBBY_LIST
     {
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            byte[][] dataTypes = new byte[server.hostIdentifiers.size() * 2][];
+            byte[][] dataTypes = new byte[server.hostedLevels.size() * 2][];
 
             for(int i = 0; i < dataTypes.length / 2; i++)
             {
-                dataTypes[i * 2] = DataType.INTEGER.encode(server.hostIdentifiers.get(i));
-                dataTypes[(i * 2) + 1] = DataType.STRING.encode(server.hostedLevelNames.get(i));
+                HostedLevel hostedLevel = server.hostedLevels.get(i);
+
+                dataTypes[i * 2] = DataType.INTEGER.encode(hostedLevel.identifier());
+                dataTypes[(i * 2) + 1] = DataType.STRING.encode(hostedLevel.levelName());
             }
 
             server.send(ServerPacket.LOBBY_LIST, clientIdentifier, dataTypes);
@@ -33,9 +47,7 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            server.hostIdentifiers.add(server.nextHostIdentifier);
-            server.hostedLevels.add((byte[]) decodedData[0]);
-            server.hostedLevelNames.add((String) decodedData[1]);
+            server.hostedLevels.add(new HostedLevel(server.nextHostIdentifier, (byte[]) decodedData[0], (String) decodedData[1], new ArrayList<>(List.of(clientIdentifier))));
 
             server.nextHostIdentifier++;
         }
@@ -46,9 +58,13 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            for(int i = 0; i < server.hostIdentifiers.size(); i++)
-                if(server.hostIdentifiers.get(i) == (int) decodedData[0])
-                    server.send(ServerPacket.JOIN, clientIdentifier, DataType.BYTE_ARRAY.encode(server.hostedLevels.get(i)), DataType.STRING.encode(server.hostedLevelNames.get(i)));
+            for(HostedLevel hostedLevel : server.hostedLevels)
+                if(hostedLevel.identifier() == (int) decodedData[0])
+                {
+                    server.send(ServerPacket.JOIN, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level()), DataType.STRING.encode(hostedLevel.levelName()));
+
+                    hostedLevel.joinedClients().add(clientIdentifier);
+                }
         }
     };
 

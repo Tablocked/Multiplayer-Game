@@ -12,16 +12,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Server extends Network
 {
     int nextHostIdentifier = 0;
     final List<ClientIdentifier> clients = new ArrayList<>();
-    final List<Integer> hostIdentifiers = new ArrayList<>();
-    final List<byte[]> hostedLevels = new ArrayList<>();
-    final List<String> hostedLevelNames = new ArrayList<>();
+    final List<HostedLevel> hostedLevels = new ArrayList<>();
 
     public static void main(String[] args)
     {
@@ -35,8 +32,6 @@ public class Server extends Network
 
     private void respondToPacket(ClientIdentifier clientIdentifier, byte[] data, int dataLength)
     {
-        System.out.println("RECEIVED: " + Arrays.toString(data));
-
         ClientPacket.values()[data[1]].respondToClientPacket(decodePacket(data, dataLength), clientIdentifier, this);
     }
 
@@ -44,14 +39,14 @@ public class Server extends Network
     void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
     {
         for(ClientIdentifier clientIdentifier : clients)
-            if(clientIdentifier.inetAddress.equals(receivedPacket.getAddress()) && clientIdentifier.port == receivedPacket.getPort())
+            if(clientIdentifier.inetAddress().equals(receivedPacket.getAddress()) && clientIdentifier.port() == receivedPacket.getPort())
             {
                 respondToPacket(clientIdentifier, data, dataLength);
 
                 return;
             }
 
-        ClientIdentifier newClient = new ClientIdentifier(receivedPacket);
+        ClientIdentifier newClient = new ClientIdentifier(receivedPacket.getAddress(), receivedPacket.getPort());
 
         clients.add(newClient);
 
@@ -68,30 +63,31 @@ public class Server extends Network
 
         gc.setFont(Font.font("Arial", 20));
 
-        AnimationTimer animationTimer = new AnimationTimer()
+        AnimationTimer renderLoop = new AnimationTimer()
         {
             @Override
             public void handle(long l)
             {
                 int yPosition = 50;
-
                 gc.clearRect(0, 0, 960, 540);
                 gc.fillText("Clients (" + clients.size() + ")", 10, 20);
 
                 yPosition += 30;
 
-                gc.fillText("Hosted Levels (" + hostIdentifiers.size() + ")", 10, yPosition);
+                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, yPosition);
 
-                for(int i = 0; i < hostIdentifiers.size(); i++)
+                for(int i = 0; i < hostedLevels.size(); i++)
                 {
+                    HostedLevel hostedLevel = hostedLevels.get(i);
+
                     yPosition += 30;
 
-                    gc.fillText((i + 1) + ") Name: " + hostedLevelNames.get(i) + " | Size: " + hostedLevels.get(i).length + " bytes | Host Identifier: " + hostIdentifiers.get(i), 10, yPosition);
+                    gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName() + " | Size: " + hostedLevel.level().length + " bytes | Joined Clients: " + hostedLevel.joinedClients().size() + " | Host Identifier: " + hostedLevel.identifier(), 10, yPosition);
                 }
             }
         };
 
-        animationTimer.start();
+        renderLoop.start();
 
         stage.setScene(new Scene(new Group(canvas)));
         stage.setTitle("Server");
@@ -102,6 +98,6 @@ public class Server extends Network
 
     void send(ServerPacket serverPacket, ClientIdentifier clientIdentifier, byte[]... dataTypes)
     {
-        send(serverPacket.ordinal(), clientIdentifier.inetAddress, clientIdentifier.port, dataTypes);
+        send(serverPacket.ordinal(), clientIdentifier.inetAddress(), clientIdentifier.port(), dataTypes);
     }
 }

@@ -5,8 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import tablock.core.Input;
-import tablock.gameState.Renderer;
-import tablock.gameState.TitleScreen;
+import tablock.gameState.TitleState;
 import tablock.network.Client;
 
 import java.util.List;
@@ -20,14 +19,16 @@ public abstract class PagedList<T>
     private final List<T> list;
     private final String headerText;
     private final InputIndicator inputIndicator = new InputIndicator();
-    private final TextButton backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> Renderer.setCurrentState(new TitleScreen()));
+    private final TextButton backButton;
     private final ImageButton leftArrowButton = new ImageButton(870, 880, Client.getTexture("leftArrowButton"), () -> {page--; createButtons();});
     private final ImageButton rightArrowButton = new ImageButton(1050, 900, Client.getTexture("rightArrowButton"), () -> {page++; createButtons();});
 
-    public PagedList(List<T> list, String headerText)
+    public PagedList(List<T> list, String headerText, Client client)
     {
         this.list = list;
         this.headerText = headerText;
+
+        backButton = new TextButton(575, 800, "Back", 80, Color.WHITE, true, () -> client.switchGameState(new TitleState()));
 
         backButton.setActionButton(Input.BACK);
         backButton.setSelectedColor(Color.rgb(0, 80, 0));
@@ -73,13 +74,23 @@ public abstract class PagedList<T>
         }
 
         int index = 0;
+        int buttonBeingClickedIndex = -1;
 
         if(itemButtonStrip != null)
+        {
             index = itemButtonStrip.getIndex() == itemButtonStrip.getMaximumIndex() ? levelsOnPage : itemButtonStrip.getIndex();
+
+            for(int i = 0; i < itemButtonStrip.buttons.length; i++)
+                if(itemButtonStrip.buttons[i].beingClicked)
+                    buttonBeingClickedIndex = i;
+        }
 
         itemButtonStrip = new ButtonStrip(ButtonStrip.Orientation.VERTICAL, levelButtons);
 
         itemButtonStrip.setIndex(index > itemButtonStrip.getMaximumIndex() ? levelsOnPage - 1 : index);
+
+        if(Input.MOUSE_LEFT.isActive() && buttonBeingClickedIndex != -1)
+            itemButtonStrip.forceButtonToBeClicked(buttonBeingClickedIndex);
     }
 
     public void renderArrowButtons(GraphicsContext gc)
@@ -110,10 +121,10 @@ public abstract class PagedList<T>
         gc.setFill(Color.WHITE);
 
         String pageText = "Page " + page + " of " + maxPage;
-        Bounds pageTextShape = Renderer.getTextShape(pageText, gc);
+        Bounds pageTextShape = Client.getTextShape(pageText, gc);
 
-        Renderer.fillText(960, 990, pageText, gc);
-        Renderer.fillText(960, 160, headerText, gc);
+        Client.fillText(960, 990, pageText, gc);
+        Client.fillText(960, 160, headerText, gc);
 
         leftArrowButton.setPosition(880 - (pageTextShape.getWidth() / 2), 915);
         rightArrowButton.setPosition(1040 + (pageTextShape.getWidth() / 2), 915);

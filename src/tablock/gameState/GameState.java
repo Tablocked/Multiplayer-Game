@@ -7,5 +7,10 @@ public abstract class GameState
 {
     static Client CLIENT;
 
-    abstract void renderNextFrame(GraphicsContext gc);
+    public static void initialize(Client client)
+    {
+        CLIENT = client;
+    }
+
+    public abstract void renderNextFrame(GraphicsContext gc);
 }

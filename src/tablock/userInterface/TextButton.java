@@ -5,7 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import tablock.gameState.Renderer;
+import tablock.network.Client;
 
 public class TextButton extends Button
 {
@@ -57,7 +57,7 @@ public class TextButton extends Button
         gc.setFont(text.getFont());
 
         if(centerText)
-            Renderer.fillText(textX, textY, text.getText(), gc);
+            Client.fillText(textX, textY, text.getText(), gc);
         else
         {
             textX -= xOffset;

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class LevelSelectScreen extends GameState
+public class LevelSelectState extends GameState
 {
     private ButtonStrip optionButtonStrip;
     private ButtonStrip confirmButtonStrip;
@@ -31,7 +31,7 @@ public class LevelSelectScreen extends GameState
     private String levelNameDuringRenameStart;
     private final List<File> levelFiles = new ArrayList<>();
 
-    private final PagedList<File> pagedList = new PagedList<>(levelFiles, "Select Level")
+    private final PagedList<File> pagedList = new PagedList<>(levelFiles, "Select Level", CLIENT)
     {
         @Override
         public void createButtons()
@@ -56,8 +56,7 @@ public class LevelSelectScreen extends GameState
                 try
                 {
                     CLIENT.send(ClientPacket.HOST, DataType.BYTE_ARRAY.encode(Files.readAllBytes(levelPointer.getFile().toPath())), DataType.STRING.encode(levelPointer.getFile().getName()));
-
-                    Renderer.setCurrentState(new PlayScreen(deserializeLevel(levelPointer.getFile())));
+                    CLIENT.switchGameState(new PlayState(deserializeLevel(levelPointer.getFile())));
                 }
                 catch(IOException exception)
                 {
@@ -65,7 +64,7 @@ public class LevelSelectScreen extends GameState
                 }
             });
 
-            TextButton editButton = new TextButton("Edit", 50, () -> Renderer.setCurrentState(new CreateScreen(deserializeLevel(levelPointer.getFile()), levelPointer.getFile().toPath())));
+            TextButton editButton = new TextButton("Edit", 50, () -> CLIENT.switchGameState(new CreateState(deserializeLevel(levelPointer.getFile()), levelPointer.getFile().toPath())));
             TextButton renameButton = new TextButton("Rename", 50, null);
             TextButton deleteButton = new TextButton("Delete", 50, () -> onDeleteButtonActivation(yPosition, levelPointer.getFile()));
 
@@ -120,7 +119,7 @@ public class LevelSelectScreen extends GameState
         }
     });
 
-    public LevelSelectScreen()
+    public LevelSelectState()
     {
         newButton.setSelectedColor(Color.rgb(0, 80, 0));
         newButton.setDeselectedColor(Color.rgb(80, 0 , 0));
@@ -224,12 +223,12 @@ public class LevelSelectScreen extends GameState
             text += character;
 
         Font font = Font.font("Arial", 80);
-        Bounds textShape = Renderer.getTextShape(text, font);
+        Bounds textShape = Client.getTextShape(text, font);
 
         while(textShape.getWidth() > 800)
         {
             text = text.substring(0, text.length() - 1);
-            textShape = Renderer.getTextShape(text, font);
+            textShape = Client.getTextShape(text, font);
         }
 
         levelButtonDuringLevelRename.setText(text);
@@ -264,8 +263,8 @@ public class LevelSelectScreen extends GameState
 
         String pageText = "Page " + pagedList.getPage() + " of " + pagedList.getMaxPage();
 
-        Renderer.fillText(960, 990, pageText, gc);
-        Renderer.fillText(960, 160, "Select Level", gc);
+        Client.fillText(960, 990, pageText, gc);
+        Client.fillText(960, 160, "Select Level", gc);
 
         newButton.setWidth(Input.isUsingMouseControls() ? 750 : 1520);
         newButton.setPosition(Input.isUsingMouseControls() ? 1345 : 960, 800);

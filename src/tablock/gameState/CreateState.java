@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateScreen extends GameState
+public class CreateState extends GameState
 {
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 540);
@@ -44,7 +44,7 @@ public class CreateScreen extends GameState
     private final ButtonStrip pauseButtons;
     private final Level level;
 
-    public CreateScreen(Level level, Path levelPath)
+    public CreateState(Level level, Path levelPath)
     {
         this.level = level;
 
@@ -97,7 +97,7 @@ public class CreateScreen extends GameState
     {
         Input.setForceMouseVisible(false);
 
-        Renderer.setCurrentState(new LevelSelectScreen());
+        CLIENT.switchGameState(new LevelSelectState());
     }
 
     private void saveLevel(Path levelPath)
@@ -115,7 +115,7 @@ public class CreateScreen extends GameState
     private void switchToPlayScreen(double startX, double startY)
     {
         if(objectSelector.getComplexPlatforms().size() == 0)
-            Renderer.setCurrentState(new PlayScreen(this, startX, startY));
+            CLIENT.switchGameState(new PlayState(this, startX, startY));
         else
         {
             timeDuringPreviousFrame = System.currentTimeMillis();
@@ -385,9 +385,9 @@ public class CreateScreen extends GameState
 
             gc.setFill(Color.rgb(255, 0, 0, 0.5));
 
-            if(objectSelector.getComplexPlatforms().size() == 0 && (playFromStartButton.isSelected() || playFromHereButton.isSelected()))
+            if(objectSelector.getComplexPlatforms().size() == 0 && (playFromStartButton.isHovered() || playFromHereButton.isHovered()))
             {
-                Point2D hologramPosition = (playFromStartButton.isSelected() ? screenStartPoint : screenInterfacePosition).subtract(hologramOffset, hologramOffset);
+                Point2D hologramPosition = (playFromStartButton.isHovered() ? screenStartPoint : screenInterfacePosition).subtract(hologramOffset, hologramOffset);
 
                 gc.fillRect(hologramPosition.getX(), hologramPosition.getY(), hologramLength, hologramLength);
             }

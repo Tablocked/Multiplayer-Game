@@ -6,9 +6,9 @@ import tablock.core.Input;
 public class ButtonStrip
 {
     private final Orientation orientation;
-    private final Button[] buttons;
     private int index = 0;
     private boolean frozen = false;
+    final Button[] buttons;
 
     public ButtonStrip(Orientation orientation, Button... buttons)
     {
@@ -61,7 +61,7 @@ public class ButtonStrip
             Button button = buttons[i];
 
             if(!frozen)
-                button.setSelected(index == i && !Input.isUsingMouseControls());
+                button.setHovered(index == i && !Input.isUsingMouseControls());
 
             button.calculateSelectedAndRender(gc);
             button.checkForActionButtonActivation();
@@ -101,6 +101,11 @@ public class ButtonStrip
     {
         for(Button button : buttons)
             button.setHidden(hidden);
+    }
+
+    public void forceButtonToBeClicked(int buttonBeingClickedIndex)
+    {
+        buttons[buttonBeingClickedIndex].beingClicked = true;
     }
 
     public enum Orientation

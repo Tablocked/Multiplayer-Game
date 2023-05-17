@@ -6,9 +6,12 @@ import tablock.network.DataType;
 import tablock.userInterface.PagedList;
 import tablock.userInterface.TextButton;
 
-public class JoinScreen extends GameState
+public class JoinState extends GameState
 {
-    private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.getHostIdentifiers(), "Select Host")
+    private long lobbyListRequestTime = 0;
+    private int previousHostCount = 0;
+
+    private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.getHostIdentifiers(), "Select Host", CLIENT)
     {
         @Override
         protected void onItemButtonActivation(Integer hostIdentifier, TextButton levelButton, int yPosition)
@@ -23,9 +26,10 @@ public class JoinScreen extends GameState
         }
     };
 
-    public JoinScreen()
+    public JoinState()
     {
-        CLIENT.send(ClientPacket.LOBBY_LIST);
+        CLIENT.getHostedLevelNames().clear();
+        CLIENT.getHostIdentifiers().clear();
 
         pagedList.createButtons();
     }
@@ -33,8 +37,24 @@ public class JoinScreen extends GameState
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
+        if(System.currentTimeMillis() - lobbyListRequestTime > 1000)
+        {
+            lobbyListRequestTime = System.currentTimeMillis();
+
+            CLIENT.send(ClientPacket.LOBBY_LIST);
+        }
+
+        if(previousHostCount != CLIENT.getHostIdentifiers().size())
+        {
+            previousHostCount = CLIENT.getHostIdentifiers().size();
+
+            pagedList.createButtons();
+        }
+
         pagedList.renderBackgroundAndItemButtonStrip(gc);
         pagedList.renderArrowButtons(gc);
         pagedList.getInputIndicator().render(gc);
+
+        previousHostCount = CLIENT.getHostIdentifiers().size();
     }
 }

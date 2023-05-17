@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.HashMap;
 
 public abstract class Network extends Application
@@ -15,7 +14,7 @@ public abstract class Network extends Application
     static final int PORT = 3925;
     private static final int MAX_PACKET_LENGTH = 1024;
     final DatagramSocket datagramSocket;
-    private int nextLargePacketIdentifier = 1;
+    private byte nextLargePacketIdentifier = 1;
     private final HashMap<Byte, byte[]> incompleteLargePackets = new HashMap<>();
     private boolean running = true;
 
@@ -36,8 +35,6 @@ public abstract class Network extends Application
         {
             int dataTypeLength = (data[index] & 255) << 8 | (data[index + 1] & 255);
             byte[] dataType = new byte[dataTypeLength];
-
-            System.out.println(dataTypeLength);
 
             index += 2;
 
@@ -63,44 +60,46 @@ public abstract class Network extends Application
         try
         {
             byte[] data = new byte[MAX_PACKET_LENGTH];
-            int index = 2;
+            int dataIndex = 2;
+            int dataTypeIndex = 0;
+            int bytesCopied = 0;
             boolean largePacket = false;
 
             data[1] = (byte) packetOrdinal;
 
-            for(byte[] dataType : dataTypes)
+            while(dataTypeIndex < dataTypes.length)
             {
-                int spaceRemaining = MAX_PACKET_LENGTH - index;
+                byte[] dataType = dataTypes[dataTypeIndex];
+                int bytesToCopy = Math.min(dataType.length - bytesCopied, MAX_PACKET_LENGTH - dataIndex);
 
-                System.arraycopy(dataType, 0, data, index, Math.min(dataType.length, spaceRemaining));
+                System.arraycopy(dataType, bytesCopied, data, dataIndex, bytesToCopy);
 
-                if(index + dataType.length > MAX_PACKET_LENGTH)
+                dataIndex += bytesToCopy;
+                bytesCopied += bytesToCopy;
+
+                if(bytesCopied == dataType.length)
+                {
+                    dataTypeIndex++;
+
+                    bytesCopied = 0;
+                }
+                else
                 {
                     largePacket = true;
-                    data[0] = (byte) nextLargePacketIdentifier;
+                    data[0] = nextLargePacketIdentifier;
 
                     datagramSocket.send(new DatagramPacket(data, MAX_PACKET_LENGTH, inetAddress, port));
 
                     data = new byte[MAX_PACKET_LENGTH];
-
-                    System.arraycopy(dataType, spaceRemaining, data, 1, dataType.length - spaceRemaining);
-
-                    data[0] = (byte) nextLargePacketIdentifier;
-
-                    index = (dataType.length - spaceRemaining) + 1;
+                    data[0] = nextLargePacketIdentifier;
+                    dataIndex = 1;
                 }
-                else
-                    index += dataType.length;
             }
 
             if(largePacket)
                 nextLargePacketIdentifier++;
 
-            byte[] encodedData = new byte[index];
-
-            System.arraycopy(data, 0, encodedData, 0, index);
-
-            datagramSocket.send(new DatagramPacket(encodedData, encodedData.length, inetAddress, port));
+            datagramSocket.send(new DatagramPacket(data, dataIndex, inetAddress, port));
         }
         catch(IOException exception)
         {
@@ -130,16 +129,14 @@ public abstract class Network extends Application
 
                     byte largePacketIdentifier = receivedPacket.getData()[0];
 
-                    if(largePacketIdentifier != 0)
+                    if(largePacketIdentifier == 0)
+                        respondToPacket(receivedPacket, receivedPacket.getData(), receivedPacket.getLength());
+                    else
                     {
-                        System.out.println("LARGE PACKET! -> " + largePacketIdentifier);
-
                         incompleteLargePackets.merge(largePacketIdentifier, receivedPacket.getData(), (incompleteData, additionalData) ->
                         {
                             int additionalDataLength = (receivedPacket.getLength() - 1);
                             byte[] mergedData = new byte[incompleteData.length + additionalDataLength];
-
-                            System.out.println("LENGTH: " + receivedPacket.getLength());
 
                             System.arraycopy(incompleteData, 0, mergedData, 0, incompleteData.length);
                             System.arraycopy(additionalData, 1, mergedData, incompleteData.length, additionalDataLength);
@@ -153,13 +150,9 @@ public abstract class Network extends Application
 
                             incompleteLargePackets.remove(largePacketIdentifier);
 
-                            System.out.println("COMPLETED LARGE PACKET! -> " + Arrays.toString(data) + "\n length: " + data.length);
-
                             respondToPacket(receivedPacket, data, data.length);
                         }
                     }
-                    else
-                        respondToPacket(receivedPacket, receivedPacket.getData(), receivedPacket.getLength());
                 }
                 catch(IOException exception)
                 {

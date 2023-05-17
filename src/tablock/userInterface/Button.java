@@ -8,7 +8,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
 import tablock.core.Input;
-import tablock.gameState.Renderer;
+import tablock.network.Client;
 
 public abstract class Button
 {
@@ -16,11 +16,11 @@ public abstract class Button
     double y;
     double width;
     double height;
+    boolean beingClicked = false;
     protected String hoverText;
     private ActivationHandler activationHandler;
     private Input input;
-    private boolean beingClicked = false;
-    private boolean selected = false;
+    private boolean hovered = false;
     private boolean forceHighlighted = false;
     private boolean circular = false;
     private boolean hoverTextLeftSided = false;
@@ -50,7 +50,7 @@ public abstract class Button
         {
             if(shape.contains(Input.getMousePosition()))
             {
-                selected = true;
+                hovered = true;
 
                 if(Input.MOUSE_LEFT.wasJustActivated())
                     beingClicked = true;
@@ -64,11 +64,11 @@ public abstract class Button
             }
             else
             {
-                selected = beingClicked = false;
+                hovered = beingClicked = false;
             }
         }
 
-        if(selected && Input.UI_SELECT.wasJustActivated() && !frozen && !preventActivation)
+        if(hovered && Input.UI_SELECT.wasJustActivated() && !frozen && !preventActivation)
             activationHandler.onActivation();
 
         preventActivation = false;
@@ -79,11 +79,11 @@ public abstract class Button
         double diagonal = Math.sqrt(2 * Math.pow(width, 2));
         double offset = diagonal / 2;
 
-        if(selected && hoverText != null)
+        if(hovered && hoverText != null)
         {
             gc.setFont(Font.font("Arial", 50));
 
-            Bounds textShape = Renderer.getTextShape(hoverText, gc);
+            Bounds textShape = Client.getTextShape(hoverText, gc);
             double rectangleWidth = textShape.getWidth() + offset + 20;
             double xOffset = hoverTextLeftSided ? rectangleWidth : 0;
 
@@ -93,7 +93,7 @@ public abstract class Button
             gc.fillText(hoverText, x + offset - xOffset + (hoverTextLeftSided ? -20 : 10), y + (offset / 2));
         }
 
-        gc.setFill(selected || forceHighlighted ? selectedColor : deselectedColor);
+        gc.setFill(hovered || forceHighlighted ? selectedColor : deselectedColor);
 
         if(circular)
         {
@@ -162,14 +162,14 @@ public abstract class Button
         return y;
     }
 
-    public void setSelected(boolean selected)
+    public void setHovered(boolean hovered)
     {
-        this.selected = selected;
+        this.hovered = hovered;
     }
 
-    public boolean isSelected()
+    public boolean isHovered()
     {
-        return selected;
+        return hovered;
     }
 
     public void setForceHighlighted(boolean forceHighlighted)

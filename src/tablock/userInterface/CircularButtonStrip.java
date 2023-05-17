@@ -29,13 +29,13 @@ public class CircularButtonStrip
     public void deselectAllButtons()
     {
         for(Button button : buttons)
-            button.setSelected(false);
+            button.setHovered(false);
     }
 
     public boolean areNoButtonsSelected()
     {
         for(Button button : buttons)
-            if(button.isSelected())
+            if(button.isHovered())
                 return false;
 
         return true;

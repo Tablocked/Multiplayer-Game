@@ -1,7 +1,6 @@
 package tablock.network;
 
-import tablock.gameState.PlayScreen;
-import tablock.gameState.Renderer;
+import tablock.gameState.PlayState;
 import tablock.level.Level;
 
 public enum ServerPacket
@@ -36,7 +35,7 @@ public enum ServerPacket
         @Override
         void respondToServerPacket(Object[] decodedData, Client client)
         {
-            Renderer.setCurrentState(new PlayScreen((Level) Client.deserializeObject((byte[]) decodedData[0])));
+            client.switchGameState(new PlayState((Level) Client.deserializeObject((byte[]) decodedData[0])));
         }
     };
 
