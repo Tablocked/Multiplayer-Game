@@ -5,6 +5,25 @@ import tablock.level.Level;
 
 public enum ServerPacket
 {
+    TICK
+    {
+        @Override
+        void respondToServerPacket(Object[] decodedData, Client client)
+        {
+            byte[][] dataTypes = new byte[0][];
+
+            if(client.player != null)
+                dataTypes = new byte[][]{DataType.DOUBLE.encode(client.player.x), DataType.DOUBLE.encode(client.player.y), DataType.DOUBLE.encode(client.player.rotationAngle)};
+
+            client.send(ClientPacket.TICK, dataTypes);
+            client.playersInHostedLevel.clear();
+
+            if(decodedData.length > 0)
+                for(int i = 0; i < decodedData.length / 3; i += 3)
+                    client.playersInHostedLevel.add(new Player((double) decodedData[i], (double) decodedData[i + 1], (double) decodedData[i + 2]));
+        }
+    },
+
     CLIENT_NAME
     {
         @Override
@@ -30,7 +49,7 @@ public enum ServerPacket
         }
     },
 
-    JOIN
+    JOIN_HOST
     {
         @Override
         void respondToServerPacket(Object[] decodedData, Client client)

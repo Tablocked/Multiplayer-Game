@@ -1,12 +1,15 @@
 package tablock.network;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -19,6 +22,9 @@ public class Server extends Network
     int nextHostIdentifier = 0;
     final List<ClientIdentifier> clients = new ArrayList<>();
     final List<HostedLevel> hostedLevels = new ArrayList<>();
+    private long previousTime = System.nanoTime();
+    private int ticksPerSecond;
+    private int tickCount = 0;
 
     public static void main(String[] args)
     {
@@ -39,7 +45,7 @@ public class Server extends Network
     void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
     {
         for(ClientIdentifier clientIdentifier : clients)
-            if(clientIdentifier.inetAddress().equals(receivedPacket.getAddress()) && clientIdentifier.port() == receivedPacket.getPort())
+            if(clientIdentifier.inetAddress.equals(receivedPacket.getAddress()) && clientIdentifier.port == receivedPacket.getPort())
             {
                 respondToPacket(clientIdentifier, data, dataLength);
 
@@ -63,26 +69,86 @@ public class Server extends Network
 
         gc.setFont(Font.font("Arial", 20));
 
+        Timeline tickLoop = new Timeline(new KeyFrame(Duration.millis(16.67), (actionEvent) ->
+        {
+            List<ClientIdentifier> copyOfClients = new ArrayList<>(clients);
+
+            hostedLevels.removeIf(hostedLevel -> hostedLevel.joinedClients.size() == 0);
+
+            for(ClientIdentifier clientIdentifier : copyOfClients)
+                if(System.currentTimeMillis() - clientIdentifier.timeDuringLastPacketReceived > 10000)
+                    clients.remove(clientIdentifier);
+                else
+                {
+                    byte[][] dataTypes = new byte[0][];
+
+                    if(clientIdentifier.clientsInHostedLevel != null)
+                    {
+                        boolean skipOneIndex = false;
+
+                        dataTypes = new byte[(clientIdentifier.clientsInHostedLevel.size() - 1) * 3][];
+
+                        for(int i = 0; i < clientIdentifier.clientsInHostedLevel.size(); i++)
+                        {
+                            Player player = clientIdentifier.clientsInHostedLevel.get(i).player;
+
+                            if(player == clientIdentifier.player)
+                            {
+                                if(!skipOneIndex)
+                                    skipOneIndex = true;
+                                else
+                                {
+                                    dataTypes = new byte[0][];
+
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                int index = (skipOneIndex ? i - 1 : i) * 3;
+
+                                dataTypes[index] = DataType.DOUBLE.encode(player.x);
+                                dataTypes[index + 1] = DataType.DOUBLE.encode(player.y);
+                                dataTypes[index + 2] = DataType.DOUBLE.encode(player.rotationAngle);
+                            }
+                        }
+                    }
+
+                    send(ServerPacket.TICK, clientIdentifier, dataTypes);
+                }
+
+            tickCount++;
+        }));
+
+        tickLoop.setCycleCount(Timeline.INDEFINITE);
+        tickLoop.play();
+
         AnimationTimer renderLoop = new AnimationTimer()
         {
             @Override
             public void handle(long l)
             {
-                int yPosition = 50;
+                int yPosition = 20;
+
+                if(System.nanoTime() - previousTime > 1e9)
+                {
+                    previousTime = System.nanoTime();
+                    ticksPerSecond = tickCount;
+                    tickCount = 0;
+                }
+
                 gc.clearRect(0, 0, 960, 540);
-                gc.fillText("Clients (" + clients.size() + ")", 10, 20);
-
-                yPosition += 30;
-
-                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, yPosition);
+                gc.fillText(ticksPerSecond + " TPS", 10, yPosition);
+                gc.fillText(bytesSent / 1024 + " KB Sent", 10, yPosition += 30);
+                gc.fillText(bytesReceived / 1024 + " KB Received", 10, yPosition += 30);
+                gc.fillText("Clients (" + clients.size() + ")", 10, yPosition += 60);
+                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, yPosition += 30);
 
                 for(int i = 0; i < hostedLevels.size(); i++)
                 {
                     HostedLevel hostedLevel = hostedLevels.get(i);
 
-                    yPosition += 30;
-
-                    gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName() + " | Size: " + hostedLevel.level().length + " bytes | Joined Clients: " + hostedLevel.joinedClients().size() + " | Host Identifier: " + hostedLevel.identifier(), 10, yPosition);
+                    gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName + " | Size: " + hostedLevel.level.length + " bytes | Joined Clients: " + hostedLevel.joinedClients.size() + " | Host Identifier: " + hostedLevel.identifier, 10, yPosition += 30);
                 }
             }
         };
@@ -98,6 +164,6 @@ public class Server extends Network
 
     void send(ServerPacket serverPacket, ClientIdentifier clientIdentifier, byte[]... dataTypes)
     {
-        send(serverPacket.ordinal(), clientIdentifier.inetAddress(), clientIdentifier.port(), dataTypes);
+        send(serverPacket.ordinal(), clientIdentifier.inetAddress, clientIdentifier.port, dataTypes);
     }
 }

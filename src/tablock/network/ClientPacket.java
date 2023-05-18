@@ -1,10 +1,23 @@
 package tablock.network;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public enum ClientPacket
 {
+    TICK
+    {
+        @Override
+        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
+        {
+            clientIdentifier.timeDuringLastPacketReceived = System.currentTimeMillis();
+
+            if(decodedData.length > 0)
+            {
+                clientIdentifier.player.x = (double) decodedData[0];
+                clientIdentifier.player.y = (double) decodedData[1];
+                clientIdentifier.player.rotationAngle = (double) decodedData[2];
+            }
+        }
+    },
+
     CLIENT_NAME
     {
         @Override
@@ -34,8 +47,8 @@ public enum ClientPacket
             {
                 HostedLevel hostedLevel = server.hostedLevels.get(i);
 
-                dataTypes[i * 2] = DataType.INTEGER.encode(hostedLevel.identifier());
-                dataTypes[(i * 2) + 1] = DataType.STRING.encode(hostedLevel.levelName());
+                dataTypes[i * 2] = DataType.INTEGER.encode(hostedLevel.identifier);
+                dataTypes[(i * 2) + 1] = DataType.STRING.encode(hostedLevel.levelName);
             }
 
             server.send(ServerPacket.LOBBY_LIST, clientIdentifier, dataTypes);
@@ -47,24 +60,40 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            server.hostedLevels.add(new HostedLevel(server.nextHostIdentifier, (byte[]) decodedData[0], (String) decodedData[1], new ArrayList<>(List.of(clientIdentifier))));
+            server.hostedLevels.add(new HostedLevel(server.nextHostIdentifier, (byte[]) decodedData[0], (String) decodedData[1], clientIdentifier));
 
             server.nextHostIdentifier++;
         }
     },
 
-    JOIN
+    JOIN_HOST
     {
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
             for(HostedLevel hostedLevel : server.hostedLevels)
-                if(hostedLevel.identifier() == (int) decodedData[0])
+                if(hostedLevel.identifier == (int) decodedData[0])
                 {
-                    server.send(ServerPacket.JOIN, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level()), DataType.STRING.encode(hostedLevel.levelName()));
+                    server.send(ServerPacket.JOIN_HOST, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level), DataType.STRING.encode(hostedLevel.levelName));
 
-                    hostedLevel.joinedClients().add(clientIdentifier);
+                    clientIdentifier.player = new Player(0, 0, 0);
+
+                    hostedLevel.addClient(clientIdentifier);
                 }
+        }
+    },
+
+    LEAVE_HOST
+    {
+        @Override
+        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
+        {
+            if(clientIdentifier.clientsInHostedLevel != null)
+            {
+                clientIdentifier.clientsInHostedLevel.remove(clientIdentifier);
+
+                clientIdentifier.clientsInHostedLevel = null;
+            }
         }
     };
 

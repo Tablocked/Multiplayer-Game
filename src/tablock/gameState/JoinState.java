@@ -11,25 +11,25 @@ public class JoinState extends GameState
     private long lobbyListRequestTime = 0;
     private int previousHostCount = 0;
 
-    private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.getHostIdentifiers(), "Select Host", CLIENT)
+    private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
     {
         @Override
         protected void onItemButtonActivation(Integer hostIdentifier, TextButton levelButton, int yPosition)
         {
-            CLIENT.send(ClientPacket.JOIN, DataType.INTEGER.encode(hostIdentifier));
+            CLIENT.send(ClientPacket.JOIN_HOST, DataType.INTEGER.encode(hostIdentifier));
         }
 
         @Override
         protected String getItemButtonName(Integer hostIdentifier, int index)
         {
-            return CLIENT.getHostedLevelNames().get(index);
+            return CLIENT.hostedLevelNames.get(index);
         }
     };
 
     public JoinState()
     {
-        CLIENT.getHostedLevelNames().clear();
-        CLIENT.getHostIdentifiers().clear();
+        CLIENT.hostedLevelNames.clear();
+        CLIENT.hostIdentifiers.clear();
 
         pagedList.createButtons();
     }
@@ -44,9 +44,9 @@ public class JoinState extends GameState
             CLIENT.send(ClientPacket.LOBBY_LIST);
         }
 
-        if(previousHostCount != CLIENT.getHostIdentifiers().size())
+        if(previousHostCount != CLIENT.hostIdentifiers.size())
         {
-            previousHostCount = CLIENT.getHostIdentifiers().size();
+            previousHostCount = CLIENT.hostIdentifiers.size();
 
             pagedList.createButtons();
         }
@@ -55,6 +55,6 @@ public class JoinState extends GameState
         pagedList.renderArrowButtons(gc);
         pagedList.getInputIndicator().render(gc);
 
-        previousHostCount = CLIENT.getHostIdentifiers().size();
+        previousHostCount = CLIENT.hostIdentifiers.size();
     }
 }

@@ -7,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Screen;
@@ -42,10 +41,12 @@ public class Client extends Network
 	public static final Image KEYBOARD_R_TEXTURE = getTexture("keyboardR");
 	public static final Image KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE = getTexture("keyboardShiftAndMouseLeft");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
-	String name;
-	List<Integer> hostIdentifiers = new ArrayList<>();
-	List<String> hostedLevelNames = new ArrayList<>();
+	public Player player = null;
+	public final List<Integer> hostIdentifiers = new ArrayList<>();
+	public final List<String> hostedLevelNames = new ArrayList<>();
+	public final List<Player> playersInHostedLevel = new ArrayList<>();
 	private final InetAddress inetAddress;
+	String name;
 	private GameState gameState = new TitleState();
 
 	public static void main(String[] args)
@@ -188,9 +189,9 @@ public class Client extends Network
 		renderLoop.start();
 
 		stage.setScene(scene);
-		stage.setFullScreenExitHint("");
-		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-		stage.setFullScreen(true);
+		//stage.setFullScreenExitHint("");
+		//stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+		//stage.setFullScreen(true);
 		stage.show();
 
 		send(ClientPacket.CLIENT_NAME);
@@ -209,15 +210,5 @@ public class Client extends Network
 	public String getName()
 	{
 		return name;
-	}
-
-	public List<Integer> getHostIdentifiers()
-	{
-		return hostIdentifiers;
-	}
-
-	public List<String> getHostedLevelNames()
-	{
-		return hostedLevelNames;
 	}
 }

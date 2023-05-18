@@ -1,5 +1,7 @@
 package tablock.network;
 
+import java.nio.ByteBuffer;
+
 public enum DataType
 {
     INTEGER
@@ -7,15 +9,28 @@ public enum DataType
         @Override
         byte[] toByteArray(Object data)
         {
-            int integer = (int) data;
-
-            return new byte[]{(byte) (integer >> 24), (byte) (integer >> 16), (byte) (integer >> 8), (byte) integer};
+            return ByteBuffer.allocate(4).putInt((int) data).array();
         }
 
         @Override
         Object decode(byte[] data)
         {
-            return (data[0] & 255) << 24 | (data[1] & 255) << 16 | (data[2] & 255) << 8 | (data[3] & 255);
+            return ByteBuffer.wrap(data).getInt();
+        }
+    },
+
+    DOUBLE
+    {
+        @Override
+        byte[] toByteArray(Object data)
+        {
+            return ByteBuffer.allocate(8).putDouble((double) data).array();
+        }
+
+        @Override
+        Object decode(byte[] data)
+        {
+            return ByteBuffer.wrap(data).getDouble();
         }
     },
 

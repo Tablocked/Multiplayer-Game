@@ -10,9 +10,12 @@ import tablock.core.Input;
 import tablock.core.Simulation;
 import tablock.level.Level;
 import tablock.level.Platform;
+import tablock.network.ClientPacket;
+import tablock.network.Player;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlayState extends GameState
@@ -28,7 +31,13 @@ public class PlayState extends GameState
         ButtonStrip.Orientation.VERTICAL,
 
         new TextButton(960, 440, "Resume", 100, () -> paused = false),
-        new TextButton(960, 640, "Quit To Main Menu", 100, () -> CLIENT.switchGameState(new TitleState()))
+        new TextButton(960, 640, "Quit To Main Menu", 100, () ->
+        {
+            CLIENT.player = null;
+
+            CLIENT.send(ClientPacket.LEAVE_HOST);
+            CLIENT.switchGameState(new TitleState());
+        })
     );
 
     public PlayState(Level level)
@@ -63,6 +72,8 @@ public class PlayState extends GameState
     private void addObjectsToSimulation()
     {
         SweepLine sweepLine = new SweepLine();
+
+        CLIENT.player = new Player(0, 0, 0);
 
         for(Platform object : level.getObjects())
         {
@@ -126,17 +137,42 @@ public class PlayState extends GameState
             Input.setForceMouseHidden(true);
 
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
+
+            Vector2 playerCenter = simulation.getPlayerCenter();
+
+            CLIENT.player.x = playerCenter.x;
+            CLIENT.player.y = -playerCenter.y;
+            CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
         }
 
         double offsetX = -simulation.getPlayerCenter().x + 960;
         double offsetY = simulation.getPlayerCenter().y + 540;
+        List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
+
+        gc.setFill(Color.RED);
+
+        for(Player player : playersInHostedLevel)
+        {
+            double[] xValues = {-25, 25, 25, -25};
+            double[] yValues = {-25, -25, 25, 25};
+
+            for(int i = 0; i < 4; i++)
+            {
+                double x = xValues[i];
+                double y = yValues[i];
+
+                xValues[i] = ((x * Math.cos(player.rotationAngle)) - (y * Math.sin(player.rotationAngle))) + player.x + offsetX;
+                yValues[i] = ((x * Math.sin(player.rotationAngle)) + (y * Math.cos(player.rotationAngle))) + player.y + offsetY;
+            }
+
+            gc.fillPolygon(xValues, yValues, 4);
+        }
 
         gc.beginPath();
 
         for(Vector2 vertex : simulation.getPlayerVertices())
             gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
 
-        gc.setFill(Color.RED);
         gc.fill();
         gc.closePath();
 
