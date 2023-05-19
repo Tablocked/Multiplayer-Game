@@ -35,6 +35,8 @@ public class PlayState extends GameState
         {
             CLIENT.player = null;
 
+            CLIENT.playersInHostedLevel.clear();
+
             CLIENT.send(ClientPacket.LEAVE_HOST);
             CLIENT.switchGameState(new TitleState());
         })
@@ -42,7 +44,7 @@ public class PlayState extends GameState
 
     public PlayState(Level level)
     {
-        simulation = new Simulation(createPlayer(0, 0));
+        simulation = new Simulation(0, 0);
         createState = null;
         this.level = level;
 
@@ -51,29 +53,16 @@ public class PlayState extends GameState
 
     public PlayState(CreateState createState, double startX, double startY)
     {
-        simulation = new Simulation(createPlayer(startX, -startY));
+        simulation = new Simulation(startX, -startY);
         this.createState = createState;
         this.level = createState.getLevel();
 
         addObjectsToSimulation();
     }
 
-    private Body createPlayer(double x, double y)
-    {
-        Body player = new Body();
-
-        player.addFixture(Geometry.createRectangle(50, 50));
-        player.translate(x, y);
-        player.setMass(MassType.NORMAL);
-
-        return player;
-    }
-
     private void addObjectsToSimulation()
     {
         SweepLine sweepLine = new SweepLine();
-
-        CLIENT.player = new Player(0, 0, 0);
 
         for(Platform object : level.getObjects())
         {
@@ -140,9 +129,12 @@ public class PlayState extends GameState
 
             Vector2 playerCenter = simulation.getPlayerCenter();
 
-            CLIENT.player.x = playerCenter.x;
-            CLIENT.player.y = -playerCenter.y;
-            CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
+            if(CLIENT.player != null)
+            {
+                CLIENT.player.x = playerCenter.x;
+                CLIENT.player.y = -playerCenter.y;
+                CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
+            }
         }
 
         double offsetX = -simulation.getPlayerCenter().x + 960;

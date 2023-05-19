@@ -6,8 +6,8 @@ import java.util.List;
 public class ClientIdentifier
 {
     long timeDuringLastPacketReceived = System.currentTimeMillis();
-    Player player = new Player(0, 0, 0);
     List<ClientIdentifier> clientsInHostedLevel;
+    final Player player = new Player(0, 0, 0);
     final InetAddress inetAddress;
     final int port;
 

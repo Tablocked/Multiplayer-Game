@@ -18,13 +18,10 @@ public enum ClientPacket
         }
     },
 
-    CLIENT_NAME
+    CONNECT
     {
         @Override
-        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
-        {
-            server.send(ServerPacket.CLIENT_NAME, clientIdentifier, DataType.INTEGER.encode(server.clients.size()));
-        }
+        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server) {}
     },
 
     DISCONNECT
@@ -36,7 +33,7 @@ public enum ClientPacket
         }
     },
 
-    LOBBY_LIST
+    HOST_LIST
     {
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
@@ -51,7 +48,7 @@ public enum ClientPacket
                 dataTypes[(i * 2) + 1] = DataType.STRING.encode(hostedLevel.levelName);
             }
 
-            server.send(ServerPacket.LOBBY_LIST, clientIdentifier, dataTypes);
+            server.send(ServerPacket.HOST_LIST, clientIdentifier, dataTypes);
         }
     },
 
@@ -76,7 +73,9 @@ public enum ClientPacket
                 {
                     server.send(ServerPacket.JOIN_HOST, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level), DataType.STRING.encode(hostedLevel.levelName));
 
-                    clientIdentifier.player = new Player(0, 0, 0);
+                    clientIdentifier.player.x = 0;
+                    clientIdentifier.player.y = 0;
+                    clientIdentifier.player.rotationAngle = 0;
 
                     hostedLevel.addClient(clientIdentifier);
                 }

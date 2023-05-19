@@ -45,9 +45,10 @@ public class Client extends Network
 	public final List<Integer> hostIdentifiers = new ArrayList<>();
 	public final List<String> hostedLevelNames = new ArrayList<>();
 	public final List<Player> playersInHostedLevel = new ArrayList<>();
-	private final InetAddress inetAddress;
-	String name;
 	private GameState gameState = new TitleState();
+	private long timeDuringLastPacketReceived = 0;
+	private long timeDuringLastConnectPacketSent = 0;
+	private final InetAddress inetAddress;
 
 	public static void main(String[] args)
 	{
@@ -150,6 +151,8 @@ public class Client extends Network
 	@Override
 	void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
 	{
+		timeDuringLastPacketReceived = System.currentTimeMillis();
+
 		ServerPacket.values()[data[1]].respondToServerPacket(decodePacket(data, dataLength), this);
 	}
 
@@ -176,6 +179,13 @@ public class Client extends Network
 			@Override
 			public void handle(long l)
 			{
+				if(System.currentTimeMillis() - timeDuringLastPacketReceived > 10000 && System.currentTimeMillis() - timeDuringLastConnectPacketSent > 1000)
+				{
+					timeDuringLastConnectPacketSent = System.currentTimeMillis();
+
+					send(ClientPacket.CONNECT);
+				}
+
 				gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
 				Input.beginPoll();
@@ -193,8 +203,6 @@ public class Client extends Network
 		//stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
 		//stage.setFullScreen(true);
 		stage.show();
-
-		send(ClientPacket.CLIENT_NAME);
 	}
 
 	public void switchGameState(GameState nextGameState)
@@ -205,10 +213,5 @@ public class Client extends Network
 	public void send(ClientPacket clientPacket, byte[]... dataTypes)
 	{
 		send(clientPacket.ordinal(), inetAddress, PORT, dataTypes);
-	}
-
-	public String getName()
-	{
-		return name;
 	}
 }

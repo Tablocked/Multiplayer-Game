@@ -52,11 +52,7 @@ public class Server extends Network
                 return;
             }
 
-        ClientIdentifier newClient = new ClientIdentifier(receivedPacket.getAddress(), receivedPacket.getPort());
-
-        clients.add(newClient);
-
-        respondToPacket(newClient, data, dataLength);
+        clients.add(new ClientIdentifier(receivedPacket.getAddress(), receivedPacket.getPort()));
     }
 
     @Override
@@ -77,7 +73,11 @@ public class Server extends Network
 
             for(ClientIdentifier clientIdentifier : copyOfClients)
                 if(System.currentTimeMillis() - clientIdentifier.timeDuringLastPacketReceived > 10000)
+                {
+                    clientIdentifier.clientsInHostedLevel.remove(clientIdentifier);
+
                     clients.remove(clientIdentifier);
+                }
                 else
                 {
                     byte[][] dataTypes = new byte[0][];
@@ -139,8 +139,8 @@ public class Server extends Network
 
                 gc.clearRect(0, 0, 960, 540);
                 gc.fillText(ticksPerSecond + " TPS", 10, yPosition);
-                gc.fillText(bytesSent / 1024 + " KB Sent", 10, yPosition += 30);
-                gc.fillText(bytesReceived / 1024 + " KB Received", 10, yPosition += 30);
+                gc.fillText(getBytesSent() / 1024 + " KB Sent", 10, yPosition += 30);
+                gc.fillText(getBytesReceived() / 1024 + " KB Received", 10, yPosition += 30);
                 gc.fillText("Clients (" + clients.size() + ")", 10, yPosition += 60);
                 gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, yPosition += 30);
 

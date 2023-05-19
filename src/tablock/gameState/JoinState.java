@@ -8,7 +8,7 @@ import tablock.userInterface.TextButton;
 
 public class JoinState extends GameState
 {
-    private long lobbyListRequestTime = 0;
+    private long timeDuringLastHostListRequest = 0;
     private int previousHostCount = 0;
 
     private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
@@ -37,11 +37,11 @@ public class JoinState extends GameState
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
-        if(System.currentTimeMillis() - lobbyListRequestTime > 1000)
+        if(System.currentTimeMillis() - timeDuringLastHostListRequest > 1000)
         {
-            lobbyListRequestTime = System.currentTimeMillis();
+            timeDuringLastHostListRequest = System.currentTimeMillis();
 
-            CLIENT.send(ClientPacket.LOBBY_LIST);
+            CLIENT.send(ClientPacket.HOST_LIST);
         }
 
         if(previousHostCount != CLIENT.hostIdentifiers.size())

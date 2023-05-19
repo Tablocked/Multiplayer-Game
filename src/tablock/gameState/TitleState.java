@@ -1,8 +1,6 @@
 package tablock.gameState;
 
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import tablock.network.ClientPacket;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
@@ -27,10 +25,6 @@ public class TitleState extends GameState
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
-        gc.setFill(Color.BLACK);
-        gc.setFont(Font.font("Arial", 50));
-        gc.fillText(CLIENT.getName(), 960, 100);
-
         buttonStrip.render(gc);
     }
 }

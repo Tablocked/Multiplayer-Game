@@ -13,12 +13,12 @@ public abstract class Network extends Application
 {
     static final int PORT = 3925;
     private static final int MAX_PACKET_LENGTH = 1024;
-    int bytesSent;
-    int bytesReceived;
     final DatagramSocket datagramSocket;
     private byte nextLargePacketIdentifier;
-    private final HashMap<Byte, byte[]> incompleteLargePackets = new HashMap<>();
+    private int bytesSent;
+    private int bytesReceived;
     private boolean running = true;
+    private final HashMap<Byte, byte[]> incompleteLargePackets = new HashMap<>();
 
     public Network(DatagramSocket datagramSocket)
     {
@@ -180,5 +180,15 @@ public abstract class Network extends Application
         });
 
         thread.start();
+    }
+
+    int getBytesSent()
+    {
+        return bytesSent;
+    }
+
+    int getBytesReceived()
+    {
+        return bytesReceived;
     }
 }

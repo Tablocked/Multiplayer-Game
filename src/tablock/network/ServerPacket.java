@@ -24,16 +24,7 @@ public enum ServerPacket
         }
     },
 
-    CLIENT_NAME
-    {
-        @Override
-        void respondToServerPacket(Object[] decodedData, Client client)
-        {
-            client.name = "Player " + decodedData[0];
-        }
-    },
-
-    LOBBY_LIST
+    HOST_LIST
     {
         @Override
         void respondToServerPacket(Object[] decodedData, Client client)
@@ -54,6 +45,8 @@ public enum ServerPacket
         @Override
         void respondToServerPacket(Object[] decodedData, Client client)
         {
+            client.player = new Player(0, 0, 0);
+
             client.switchGameState(new PlayState((Level) Client.deserializeObject((byte[]) decodedData[0])));
         }
     };
