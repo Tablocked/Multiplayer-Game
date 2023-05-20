@@ -16,8 +16,10 @@ public abstract class Button
     double y;
     double width;
     double height;
+    String hoverText;
     boolean beingClicked = false;
-    protected String hoverText;
+    boolean hidden = false;
+    boolean disabled = false;
     private ActivationHandler activationHandler;
     private Input input;
     private boolean hovered = false;
@@ -28,7 +30,6 @@ public abstract class Button
     private Color deselectedColor = Color.RED;
     private boolean frozen = false;
     private boolean preventActivation = false;
-    protected boolean hidden = false;
 
     protected Button(double x, double y, ActivationHandler activationHandler)
     {
@@ -37,41 +38,46 @@ public abstract class Button
         this.activationHandler = activationHandler;
     }
 
-    public void calculateSelected()
+    public void detectIfHovered()
     {
         if(hidden)
             return;
 
-        double diagonal = Math.sqrt(2 * Math.pow(width, 2));
-        Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
-        Shape shape = circular ? new Circle(x, y, diagonal / 2) : rectangle;
-
-        if(!frozen && Input.isUsingMouseControls())
+        if(disabled)
+            hovered = false;
+        else
         {
-            if(shape.contains(Input.getMousePosition()))
+            double diagonal = Math.sqrt(2 * Math.pow(width, 2));
+            Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
+            Shape shape = circular ? new Circle(x, y, diagonal / 2) : rectangle;
+
+            if(!frozen && Input.isUsingMouseControls())
             {
-                hovered = true;
-
-                if(Input.MOUSE_LEFT.wasJustActivated())
-                    beingClicked = true;
-
-                if(beingClicked && !Input.MOUSE_LEFT.isActive())
+                if(shape.contains(Input.getMousePosition()))
                 {
-                    beingClicked = false;
+                    hovered = true;
 
-                    activationHandler.onActivation();
+                    if(Input.MOUSE_LEFT.wasJustActivated())
+                        beingClicked = true;
+
+                    if(beingClicked && !Input.MOUSE_LEFT.isActive())
+                    {
+                        beingClicked = false;
+
+                        activationHandler.onActivation();
+                    }
+                }
+                else
+                {
+                    hovered = beingClicked = false;
                 }
             }
-            else
-            {
-                hovered = beingClicked = false;
-            }
+
+            if(hovered && Input.UI_SELECT.wasJustActivated() && !frozen && !preventActivation)
+                activationHandler.onActivation();
+
+            preventActivation = false;
         }
-
-        if(hovered && Input.UI_SELECT.wasJustActivated() && !frozen && !preventActivation)
-            activationHandler.onActivation();
-
-        preventActivation = false;
     }
 
     public void render(GraphicsContext gc)
@@ -83,7 +89,7 @@ public abstract class Button
         {
             gc.setFont(Font.font("Arial", 50));
 
-            Bounds textShape = Client.getTextShape(hoverText, gc);
+            Bounds textShape = Client.computeTextShape(hoverText, gc);
             double rectangleWidth = textShape.getWidth() + offset + 20;
             double xOffset = hoverTextLeftSided ? rectangleWidth : 0;
 
@@ -111,12 +117,18 @@ public abstract class Button
             Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
 
             gc.fillRect(rectangle.getX(), rectangle.getY(), width, height);
+
+            if(disabled)
+            {
+                gc.setFill(Color.rgb(0, 0, 0, 0.5));
+                gc.fillRect(rectangle.getX(), rectangle.getY(), width, height);
+            }
         }
     }
 
-    public void calculateSelectedAndRender(GraphicsContext gc)
+    public void detectIfHoveredAndRender(GraphicsContext gc)
     {
-        calculateSelected();
+        detectIfHovered();
         render(gc);
     }
 
@@ -205,6 +217,11 @@ public abstract class Button
     public void setHidden(boolean hidden)
     {
         this.hidden = hidden;
+    }
+
+    public void setDisabled(boolean disabled)
+    {
+        this.disabled = disabled;
     }
 
     public interface ActivationHandler

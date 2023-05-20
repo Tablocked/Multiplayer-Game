@@ -11,6 +11,7 @@ import tablock.level.Level;
 import tablock.network.Client;
 import tablock.network.ClientPacket;
 import tablock.network.DataType;
+import tablock.network.Player;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.PagedList;
 import tablock.userInterface.TextButton;
@@ -29,6 +30,7 @@ public class LevelSelectState extends GameState
     private ButtonStrip confirmButtonStrip;
     private TextButton levelButtonDuringLevelRename;
     private String levelNameDuringRenameStart;
+    private TextButton hostButton;
     private final List<File> levelFiles = new ArrayList<>();
 
     private final PagedList<File> pagedList = new PagedList<>(levelFiles, "Select Level", CLIENT)
@@ -40,6 +42,7 @@ public class LevelSelectState extends GameState
 
             optionButtonStrip = null;
             confirmButtonStrip = null;
+            hostButton = null;
 
             newButton.setFrozen(false);
 
@@ -51,12 +54,14 @@ public class LevelSelectState extends GameState
         {
             FilePointer levelPointer = new FilePointer(levelFile);
 
-            TextButton playButton = new TextButton("Host", 50, () ->
+            hostButton = new TextButton("Host", 50, () ->
             {
                 try
                 {
                     CLIENT.send(ClientPacket.HOST, DataType.BYTE_ARRAY.encode(Files.readAllBytes(levelPointer.getFile().toPath())), DataType.STRING.encode(levelPointer.getFile().getName()));
                     CLIENT.switchGameState(new PlayState(deserializeLevel(levelPointer.getFile())));
+
+                    CLIENT.player = new Player(0, 0, 0);
                 }
                 catch(IOException exception)
                 {
@@ -70,8 +75,9 @@ public class LevelSelectState extends GameState
 
             renameButton.setActivationHandler(() -> onRenameButtonActivation(levelButton, levelPointer));
 
-            optionButtonStrip = new ButtonStrip(ButtonStrip.Orientation.HORIZONTAL, 1384, yPosition, 10, playButton, editButton, renameButton, deleteButton);
+            optionButtonStrip = new ButtonStrip(ButtonStrip.Orientation.HORIZONTAL, 1384, yPosition, 10, hostButton, editButton, renameButton, deleteButton);
 
+            optionButtonStrip.setIndex(3);
             optionButtonStrip.preventActivationForOneFrame();
 
             pagedList.getItemButtonStrip().setFrozen(true);
@@ -171,7 +177,7 @@ public class LevelSelectState extends GameState
 
         TextButton cancelButton = new TextButton("Cancel", 50, () ->
         {
-            optionButtonStrip.setIndex(2);
+            optionButtonStrip.setIndex(3);
             confirmButtonStrip = null;
         });
 
@@ -223,12 +229,12 @@ public class LevelSelectState extends GameState
             text += character;
 
         Font font = Font.font("Arial", 80);
-        Bounds textShape = Client.getTextShape(text, font);
+        Bounds textShape = Client.computeTextShape(text, font);
 
         while(textShape.getWidth() > 800)
         {
             text = text.substring(0, text.length() - 1);
-            textShape = Client.getTextShape(text, font);
+            textShape = Client.computeTextShape(text, font);
         }
 
         levelButtonDuringLevelRename.setText(text);
@@ -266,6 +272,9 @@ public class LevelSelectState extends GameState
         Client.fillText(960, 990, pageText, gc);
         Client.fillText(960, 160, "Select Level", gc);
 
+        if(hostButton != null)
+            hostButton.setDisabled(!CLIENT.isConnected());
+
         newButton.setWidth(Input.isUsingMouseControls() ? 750 : 1520);
         newButton.setPosition(Input.isUsingMouseControls() ? 1345 : 960, 800);
         newButton.setHidden(true);
@@ -291,6 +300,7 @@ public class LevelSelectState extends GameState
                 else
                 {
                     optionButtonStrip = null;
+                    hostButton = null;
 
                     pagedList.getItemButtonStrip().setFrozen(false);
                 }
@@ -303,7 +313,7 @@ public class LevelSelectState extends GameState
             pagedList.getInputIndicator().add(text, Input.BACK);
         }
 
-        newButton.calculateSelectedAndRender(gc);
+        newButton.detectIfHoveredAndRender(gc);
 
         pagedList.getInputIndicator().render(gc);
     }

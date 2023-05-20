@@ -120,7 +120,7 @@ public class Client extends Network
 		return null;
 	}
 
-	public static Bounds getTextShape(String text, Font font)
+	public static Bounds computeTextShape(String text, Font font)
 	{
 		Text textObject = new Text(text);
 
@@ -129,16 +129,19 @@ public class Client extends Network
 		return textObject.getBoundsInParent();
 	}
 
-	public static Bounds getTextShape(String text, GraphicsContext gc)
+	public static Bounds computeTextShape(String text, GraphicsContext gc)
 	{
-		return getTextShape(text, gc.getFont());
+		return computeTextShape(text, gc.getFont());
+	}
+
+	public static void fillText(double x, double y, String text, Bounds textShape, GraphicsContext gc)
+	{
+		gc.fillText(text, x - (textShape.getWidth() / 2), y - (textShape.getHeight() / 2));
 	}
 
 	public static void fillText(double x, double y, String text, GraphicsContext gc)
 	{
-		Bounds textShape = getTextShape(text, gc);
-
-		gc.fillText(text, x - (textShape.getWidth() / 2), y - (textShape.getHeight() / 2));
+		fillText(x, y, text, computeTextShape(text, gc), gc);
 	}
 
 	public Client() throws SocketException, UnknownHostException
@@ -213,5 +216,10 @@ public class Client extends Network
 	public void send(ClientPacket clientPacket, byte[]... dataTypes)
 	{
 		send(clientPacket.ordinal(), inetAddress, PORT, dataTypes);
+	}
+
+	public boolean isConnected()
+	{
+		return System.currentTimeMillis() - timeDuringLastPacketReceived <= 10000;
 	}
 }

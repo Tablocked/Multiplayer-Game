@@ -99,9 +99,9 @@ public abstract class PagedList<T>
         {
             backButton.setWidth(newButton == null ? 1520 : 750);
             backButton.setPosition(newButton == null ? 960 : 575, 800);
-            backButton.calculateSelectedAndRender(gc);
-            leftArrowButton.calculateSelectedAndRender(gc);
-            rightArrowButton.calculateSelectedAndRender(gc);
+            backButton.detectIfHoveredAndRender(gc);
+            leftArrowButton.detectIfHoveredAndRender(gc);
+            rightArrowButton.detectIfHoveredAndRender(gc);
         }
 
         backButton.checkForActionButtonActivation();
@@ -121,7 +121,7 @@ public abstract class PagedList<T>
         gc.setFill(Color.WHITE);
 
         String pageText = "Page " + page + " of " + maxPage;
-        Bounds pageTextShape = Client.getTextShape(pageText, gc);
+        Bounds pageTextShape = Client.computeTextShape(pageText, gc);
 
         Client.fillText(960, 990, pageText, gc);
         Client.fillText(960, 160, headerText, gc);

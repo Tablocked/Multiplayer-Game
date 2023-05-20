@@ -44,7 +44,7 @@ public class CircularButtonStrip
     public void calculateSelectedButtons()
     {
         for(Button button : buttons)
-            button.calculateSelected();
+            button.detectIfHovered();
     }
 
     public void render(double x, double y, GraphicsContext gc)

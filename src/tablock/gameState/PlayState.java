@@ -12,6 +12,7 @@ import tablock.level.Level;
 import tablock.level.Platform;
 import tablock.network.ClientPacket;
 import tablock.network.Player;
+import tablock.userInterface.AttentionMessage;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
@@ -22,24 +23,17 @@ public class PlayState extends GameState
 {
     private long frameTime = System.nanoTime();
     private boolean paused = false;
+    private AttentionMessage disconnectionMessage;
     private final Simulation simulation;
     private final CreateState createState;
     private final Level level;
 
-    private final ButtonStrip buttonStrip = new ButtonStrip
+    private final ButtonStrip pauseButtons = new ButtonStrip
     (
         ButtonStrip.Orientation.VERTICAL,
 
         new TextButton(960, 440, "Resume", 100, () -> paused = false),
-        new TextButton(960, 640, "Quit To Main Menu", 100, () ->
-        {
-            CLIENT.player = null;
-
-            CLIENT.playersInHostedLevel.clear();
-
-            CLIENT.send(ClientPacket.LEAVE_HOST);
-            CLIENT.switchGameState(new TitleState());
-        })
+        new TextButton(960, 640, "Disconnect", 100, this::leaveHostAndQuitToTitleScreen)
     );
 
     public PlayState(Level level)
@@ -90,6 +84,16 @@ public class PlayState extends GameState
         }
     }
 
+    private void leaveHostAndQuitToTitleScreen()
+    {
+        CLIENT.player = null;
+
+        CLIENT.playersInHostedLevel.clear();
+
+        CLIENT.send(ClientPacket.LEAVE_HOST);
+        CLIENT.switchGameState(new TitleState());
+    }
+
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
@@ -97,69 +101,72 @@ public class PlayState extends GameState
 
         frameTime = System.nanoTime();
 
-        if(Input.PAUSE.wasJustActivated())
-        {
-            if(createState == null)
+        if(disconnectionMessage == null)
+            if(Input.PAUSE.wasJustActivated())
             {
-                paused = !paused;
+                if(createState == null)
+                {
+                    paused = !paused;
 
-                buttonStrip.setIndex(0);
+                    pauseButtons.setIndex(0);
+                }
+                else
+                {
+                    simulation.removeAllBodies();
+
+                    Input.setForceMouseHidden(false);
+
+                    CLIENT.switchGameState(createState);
+
+                    return;
+                }
             }
-            else
-            {
-                simulation.removeAllBodies();
+            else if(Input.BACK.wasJustActivated() && paused)
+                paused = false;
 
-                Input.setForceMouseHidden(false);
-
-                CLIENT.switchGameState(createState);
-
-                return;
-            }
-        }
-        else if(Input.BACK.wasJustActivated() && paused)
-            paused = false;
-
-        if(paused)
+        if(paused || disconnectionMessage != null)
             Input.setForceMouseHidden(false);
         else
         {
             Input.setForceMouseHidden(true);
 
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
-
-            Vector2 playerCenter = simulation.getPlayerCenter();
-
-            if(CLIENT.player != null)
-            {
-                CLIENT.player.x = playerCenter.x;
-                CLIENT.player.y = -playerCenter.y;
-                CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
-            }
         }
 
         double offsetX = -simulation.getPlayerCenter().x + 960;
         double offsetY = simulation.getPlayerCenter().y + 540;
         List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
+        Vector2 playerCenter = simulation.getPlayerCenter();
 
-        gc.setFill(Color.RED);
+        playerCenter.y = -playerCenter.y;
 
-        for(Player player : playersInHostedLevel)
+        if(CLIENT.player != null)
+        {
+            CLIENT.player.x = playerCenter.x;
+            CLIENT.player.y = playerCenter.y;
+            CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
+        }
+
+        for(Player onlinePlayer : playersInHostedLevel)
         {
             double[] xValues = {-25, 25, 25, -25};
             double[] yValues = {-25, -25, 25, 25};
+            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(onlinePlayer.x - playerCenter.x, 2) + Math.pow(onlinePlayer.y - playerCenter.y, 2))) + 0.2, 1);
 
             for(int i = 0; i < 4; i++)
             {
                 double x = xValues[i];
                 double y = yValues[i];
 
-                xValues[i] = ((x * Math.cos(player.rotationAngle)) - (y * Math.sin(player.rotationAngle))) + player.x + offsetX;
-                yValues[i] = ((x * Math.sin(player.rotationAngle)) + (y * Math.cos(player.rotationAngle))) + player.y + offsetY;
+                xValues[i] = ((x * Math.cos(onlinePlayer.rotationAngle)) - (y * Math.sin(onlinePlayer.rotationAngle))) + onlinePlayer.x + offsetX;
+                yValues[i] = ((x * Math.sin(onlinePlayer.rotationAngle)) + (y * Math.cos(onlinePlayer.rotationAngle))) + onlinePlayer.y + offsetY;
             }
 
+            gc.setFill(Color.rgb(255, 0, 0, opacity));
             gc.fillPolygon(xValues, yValues, 4);
         }
 
+        gc.setFill(Color.RED);
         gc.beginPath();
 
         for(Vector2 vertex : simulation.getPlayerVertices())
@@ -175,7 +182,20 @@ public class PlayState extends GameState
             gc.setFill(Color.rgb(255, 255, 255, 0.5));
             gc.fillRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
 
-            buttonStrip.render(gc);
+            pauseButtons.render(gc);
         }
+
+        if(createState == null && !CLIENT.isConnected() && disconnectionMessage == null)
+        {
+            disconnectionMessage = new AttentionMessage("Server connection was lost!", this::leaveHostAndQuitToTitleScreen, false);
+
+            disconnectionMessage.activate();
+
+            pauseButtons.setFrozen(true);
+            pauseButtons.unhighlightAllButtons();
+        }
+
+        if(disconnectionMessage != null)
+            disconnectionMessage.render(gc);
     }
 }

@@ -6,7 +6,7 @@ import tablock.core.Input;
 public class ButtonStrip
 {
     private final Orientation orientation;
-    private int index = 0;
+    private int index;
     private boolean frozen = false;
     final Button[] buttons;
 
@@ -29,7 +29,7 @@ public class ButtonStrip
         for(Button button : buttons)
         {
             double xPosition = orientation == Orientation.HORIZONTAL ? x - (totalLength / 2) + offset + (button.width / 2) : x;
-            double yPosition = orientation == Orientation.VERTICAL ? y - (totalLength / 2) + offset  + (button.height / 2) : y;
+            double yPosition = orientation == Orientation.VERTICAL ? y - (totalLength / 2) + offset + (button.height / 2) : y;
 
             offset += (orientation == Orientation.VERTICAL ? button.height : button.width) + spacing;
 
@@ -41,10 +41,19 @@ public class ButtonStrip
     {
         if(this.orientation == orientation && !frozen)
         {
+            int newIndex = index;
+
             if(incrementInput.wasJustActivated())
-                index++;
+                newIndex++;
+
             if(decrementInput.wasJustActivated())
-                index--;
+                newIndex--;
+
+            newIndex = Math.max(newIndex, 0);
+            newIndex = Math.min(newIndex, buttons.length - 1);
+
+            if(buttons.length > 0 && !buttons[newIndex].disabled)
+                index = newIndex;
         }
     }
 
@@ -53,9 +62,6 @@ public class ButtonStrip
         updateIndex(Orientation.VERTICAL, Input.DOWN, Input.UP);
         updateIndex(Orientation.HORIZONTAL, Input.RIGHT, Input.LEFT);
 
-        index = Math.max(index, 0);
-        index = Math.min(index, buttons.length - 1);
-
         for(int i = 0; i < buttons.length; i++)
         {
             Button button = buttons[i];
@@ -63,7 +69,7 @@ public class ButtonStrip
             if(!frozen)
                 button.setHovered(index == i && !Input.isUsingMouseControls());
 
-            button.calculateSelectedAndRender(gc);
+            button.detectIfHoveredAndRender(gc);
             button.checkForActionButtonActivation();
         }
     }
@@ -106,6 +112,12 @@ public class ButtonStrip
     public void forceButtonToBeClicked(int buttonBeingClickedIndex)
     {
         buttons[buttonBeingClickedIndex].beingClicked = true;
+    }
+
+    public void unhighlightAllButtons()
+    {
+        for(Button button : buttons)
+            button.setHovered(false);
     }
 
     public enum Orientation

@@ -74,7 +74,8 @@ public class Server extends Network
             for(ClientIdentifier clientIdentifier : copyOfClients)
                 if(System.currentTimeMillis() - clientIdentifier.timeDuringLastPacketReceived > 10000)
                 {
-                    clientIdentifier.clientsInHostedLevel.remove(clientIdentifier);
+                    if(clientIdentifier.clientsInHostedLevel != null)
+                        clientIdentifier.clientsInHostedLevel.remove(clientIdentifier);
 
                     clients.remove(clientIdentifier);
                 }
@@ -84,33 +85,20 @@ public class Server extends Network
 
                     if(clientIdentifier.clientsInHostedLevel != null)
                     {
-                        boolean skipOneIndex = false;
+                        ArrayList<ClientIdentifier> copyOfClientsInHostedLevel = new ArrayList<>(clientIdentifier.clientsInHostedLevel);
 
-                        dataTypes = new byte[(clientIdentifier.clientsInHostedLevel.size() - 1) * 3][];
+                        copyOfClientsInHostedLevel.remove(clientIdentifier);
 
-                        for(int i = 0; i < clientIdentifier.clientsInHostedLevel.size(); i++)
+                        dataTypes = new byte[copyOfClientsInHostedLevel.size() * 3][];
+
+                        for(int i = 0; i < copyOfClientsInHostedLevel.size(); i++)
                         {
-                            Player player = clientIdentifier.clientsInHostedLevel.get(i).player;
+                            Player player = copyOfClientsInHostedLevel.get(i).player;
+                            int index = i * 3;
 
-                            if(player == clientIdentifier.player)
-                            {
-                                if(!skipOneIndex)
-                                    skipOneIndex = true;
-                                else
-                                {
-                                    dataTypes = new byte[0][];
-
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                int index = (skipOneIndex ? i - 1 : i) * 3;
-
-                                dataTypes[index] = DataType.DOUBLE.encode(player.x);
-                                dataTypes[index + 1] = DataType.DOUBLE.encode(player.y);
-                                dataTypes[index + 2] = DataType.DOUBLE.encode(player.rotationAngle);
-                            }
+                            dataTypes[index] = DataType.DOUBLE.encode(player.x);
+                            dataTypes[index + 1] = DataType.DOUBLE.encode(player.y);
+                            dataTypes[index + 2] = DataType.DOUBLE.encode(player.rotationAngle);
                         }
                     }
 

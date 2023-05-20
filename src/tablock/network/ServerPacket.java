@@ -19,7 +19,7 @@ public enum ServerPacket
             client.playersInHostedLevel.clear();
 
             if(decodedData.length > 0)
-                for(int i = 0; i < decodedData.length / 3; i += 3)
+                for(int i = 0; i < decodedData.length; i += 3)
                     client.playersInHostedLevel.add(new Player((double) decodedData[i], (double) decodedData[i + 1], (double) decodedData[i + 2]));
         }
     },

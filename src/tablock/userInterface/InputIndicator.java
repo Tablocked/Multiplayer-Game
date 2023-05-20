@@ -20,7 +20,7 @@ public class InputIndicator
     {
         if(text != null)
         {
-            double textWidth = Client.getTextShape(text, Font.font("Arial", 40)).getWidth();
+            double textWidth = Client.computeTextShape(text, Font.font("Arial", 40)).getWidth();
             double imageWidth = image.getWidth();
 
             totalWidth += textWidth + imageWidth;
@@ -49,7 +49,7 @@ public class InputIndicator
         {
             String text = texts.get(i);
             Image image = images.get(i);
-            double textWidth = Client.getTextShape(text, gc).getWidth();
+            double textWidth = Client.computeTextShape(text, gc).getWidth();
 
             gc.drawImage(image, xPosition, 1000);
             gc.fillText(text, xPosition + image.getWidth(), 1046);

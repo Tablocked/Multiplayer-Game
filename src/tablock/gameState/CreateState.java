@@ -42,6 +42,7 @@ public class CreateState extends GameState
     private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
     private final CircularButtonStrip mainInterface;
     private final ButtonStrip pauseButtons;
+    private final AttentionMessage unsavedLevelMessage = new AttentionMessage("All unsaved changes will be lost!", this::switchToLevelSelectScreen, true);
     private final Level level;
 
     public CreateState(Level level, Path levelPath)
@@ -70,8 +71,10 @@ public class CreateState extends GameState
                 switchToLevelSelectScreen();
             }),
 
-            new TextButton(960, 740, "Exit Without Saving", 100, this::switchToLevelSelectScreen)
+            new TextButton(960, 740, "Exit Without Saving", 100, unsavedLevelMessage::activate)
         );
+
+        unsavedLevelMessage.initializeCancelButton(pauseButtons::preventActivationForOneFrame);
 
         currentInterface = mainInterface;
 
@@ -147,14 +150,15 @@ public class CreateState extends GameState
         Point2D worldMouse = screenMouse.subtract(offset).multiply(1 / scale);
         Point2D screenStartPoint = getScreenPoint(new Point2D(0, 0));
 
-        if(Input.PAUSE.wasJustActivated())
-        {
-            paused = !paused;
+        if(!unsavedLevelMessage.isActive())
+            if(Input.PAUSE.wasJustActivated())
+            {
+                paused = !paused;
 
-            pauseButtons.setIndex(0);
-        }
-        else if(Input.BACK.wasJustActivated() && paused)
-            paused = false;
+                pauseButtons.setIndex(0);
+            }
+            else if(Input.BACK.wasJustActivated() && paused)
+                paused = false;
 
         Input.setForceMouseVisible(!paused);
 
@@ -410,7 +414,13 @@ public class CreateState extends GameState
             gc.setFill(Color.rgb(255, 255, 255, 0.5));
             gc.fillRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
 
+            pauseButtons.setFrozen(unsavedLevelMessage.isActive());
+
+            if(unsavedLevelMessage.isActive())
+                pauseButtons.unhighlightAllButtons();
+
             pauseButtons.render(gc);
+            unsavedLevelMessage.render(gc);
         }
         else
         {

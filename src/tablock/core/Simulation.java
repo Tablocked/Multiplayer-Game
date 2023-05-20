@@ -222,7 +222,7 @@ public class Simulation extends World<Body>
 
 	public Vector2 getPlayerCenter()
 	{
-		return playerBody.getWorldCenter();
+		return playerBody.getWorldCenter().copy();
 	}
 
 	public Vector2[] getPlayerVertices()
