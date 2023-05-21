@@ -22,9 +22,7 @@ public class Server extends Network
     int nextHostIdentifier = 0;
     final List<ClientIdentifier> clients = new ArrayList<>();
     final List<HostedLevel> hostedLevels = new ArrayList<>();
-    private long previousTime = System.nanoTime();
-    private int ticksPerSecond;
-    private int tickCount = 0;
+    private final LoopCounter tickCounter = new LoopCounter();
 
     public static void main(String[] args)
     {
@@ -105,7 +103,7 @@ public class Server extends Network
                     send(ServerPacket.TICK, clientIdentifier, dataTypes);
                 }
 
-            tickCount++;
+            tickCounter.increment();
         }));
 
         tickLoop.setCycleCount(Timeline.INDEFINITE);
@@ -116,27 +114,20 @@ public class Server extends Network
             @Override
             public void handle(long l)
             {
-                int yPosition = 20;
-
-                if(System.nanoTime() - previousTime > 1e9)
-                {
-                    previousTime = System.nanoTime();
-                    ticksPerSecond = tickCount;
-                    tickCount = 0;
-                }
+                int y = 20;
 
                 gc.clearRect(0, 0, 960, 540);
-                gc.fillText(ticksPerSecond + " TPS", 10, yPosition);
-                gc.fillText(getBytesSent() / 1024 + " KB Sent", 10, yPosition += 30);
-                gc.fillText(getBytesReceived() / 1024 + " KB Received", 10, yPosition += 30);
-                gc.fillText("Clients (" + clients.size() + ")", 10, yPosition += 60);
-                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, yPosition += 30);
+                gc.fillText(tickCounter.computeLoopsPerSecond() + " TPS", 10, y);
+                gc.fillText(getBytesSent() / 1024 + " KB Sent", 10, y += 30);
+                gc.fillText(getBytesReceived() / 1024 + " KB Received", 10, y += 30);
+                gc.fillText("Clients (" + clients.size() + ")", 10, y += 60);
+                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, y += 30);
 
                 for(int i = 0; i < hostedLevels.size(); i++)
                 {
                     HostedLevel hostedLevel = hostedLevels.get(i);
 
-                    gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName + " | Size: " + hostedLevel.level.length + " bytes | Joined Clients: " + hostedLevel.joinedClients.size() + " | Host Identifier: " + hostedLevel.identifier, 10, yPosition += 30);
+                    gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName + " | Size: " + hostedLevel.level.length + " bytes | Joined Clients: " + hostedLevel.joinedClients.size() + " | Host Identifier: " + hostedLevel.identifier, 10, y += 30);
                 }
             }
         };

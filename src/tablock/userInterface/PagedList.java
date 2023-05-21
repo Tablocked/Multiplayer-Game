@@ -123,8 +123,8 @@ public abstract class PagedList<T>
         String pageText = "Page " + page + " of " + maxPage;
         Bounds pageTextShape = Client.computeTextShape(pageText, gc);
 
-        Client.fillText(960, 990, pageText, gc);
-        Client.fillText(960, 160, headerText, gc);
+        Client.fillText(pageText, 960, 990, gc);
+        Client.fillText(headerText, 960, 160, gc);
 
         leftArrowButton.setPosition(880 - (pageTextShape.getWidth() / 2), 915);
         rightArrowButton.setPosition(1040 + (pageTextShape.getWidth() / 2), 915);

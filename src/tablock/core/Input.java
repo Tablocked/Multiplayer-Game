@@ -28,10 +28,14 @@ public enum Input
     DOWN,
     RIGHT,
     JUMP,
+    RESET,
     S,
     R,
+    UP_ARROW,
+    DOWN_ARROW,
+    DISPLAY_INFO,
     PAUSE,
-    UI_SELECT,
+    SELECT,
     BACK("nintendoB", "playstationCircle", "keyboardEscape", "mouseRight"),
     PREVIOUS_PAGE("nintendoLeftButton", "playstationLeftButton", "keyboardQ"),
     NEXT_PAGE("nintendoRightButton", "playstationRightButton", "keyboardE");
@@ -131,11 +135,15 @@ public enum Input
         recordDigitalOrAnalogValue(RIGHT, keysPressed.contains(KeyCode.D) || keysPressed.contains(KeyCode.RIGHT) || controller.dpadRight, controller.leftStickX, true);
 
         recordDigitalValue(JUMP, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
+        recordDigitalValue(RESET, keysPressed.contains(KeyCode.R) || controller.back);
         recordDigitalValue(PAUSE, keysPressed.contains(KeyCode.ESCAPE) || controller.start);
         recordDigitalValue(S, keysPressed.contains(KeyCode.S));
         recordDigitalValue(R, keysPressed.contains(KeyCode.R));
+        recordDigitalValue(UP_ARROW, keysPressed.contains(KeyCode.UP));
+        recordDigitalValue(DOWN_ARROW, keysPressed.contains(KeyCode.DOWN));
 
-        recordDigitalValue(UI_SELECT, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
+        recordDigitalValue(DISPLAY_INFO, keysPressed.contains(KeyCode.F) || controller.guide);
+        recordDigitalValue(SELECT, keysPressed.contains(KeyCode.SPACE) || isActionButtonPressed());
         recordDigitalValue(BACK, keysPressed.contains(KeyCode.ESCAPE) || MOUSE_RIGHT.isActive() || isBackButtonPressed());
         recordDigitalValue(PREVIOUS_PAGE, keysPressed.contains(KeyCode.Q) || controller.lb);
         recordDigitalValue(NEXT_PAGE, keysPressed.contains(KeyCode.E) || controller.rb);

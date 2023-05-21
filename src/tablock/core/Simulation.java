@@ -264,4 +264,15 @@ public class Simulation extends World<Body>
 	{
 		return playerBody.getTransform().getRotationAngle();
 	}
+
+	public void resetPlayer()
+	{
+		playerBody.translateToOrigin();
+		playerBody.setLinearVelocity(0, 0);
+		playerBody.setAngularVelocity(0);
+		playerBody.getTransform().setRotation(0);
+		playerBody.setAtRest(false);
+
+		canDoubleJump = false;
+	}
 }

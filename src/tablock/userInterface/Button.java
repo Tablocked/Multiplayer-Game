@@ -73,7 +73,7 @@ public abstract class Button
                 }
             }
 
-            if(hovered && Input.UI_SELECT.wasJustActivated() && !frozen && !preventActivation)
+            if(hovered && Input.SELECT.wasJustActivated() && !frozen && !preventActivation)
                 activationHandler.onActivation();
 
             preventActivation = false;

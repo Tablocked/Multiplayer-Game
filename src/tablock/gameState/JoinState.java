@@ -58,7 +58,7 @@ public class JoinState extends GameState
             gc.setFont(Font.font("Arial", 50));
             gc.setFill(Color.RED);
 
-            Client.fillText(960, 200, "Multiplayer features are disabled!", gc);
+            Client.fillText("Multiplayer features are disabled!", 960, 200, gc);
         }
     }
 }

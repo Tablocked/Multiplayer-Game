@@ -57,7 +57,7 @@ public class TextButton extends Button
         gc.setFont(text.getFont());
 
         if(centerText)
-            Client.fillText(textX, textY, text.getText(), gc);
+            Client.fillText(text.getText(), textX, textY, gc);
         else
         {
             textX -= xOffset;

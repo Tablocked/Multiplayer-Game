@@ -22,7 +22,7 @@ import java.util.List;
 public class PlayState extends GameState
 {
     private long frameTime = System.nanoTime();
-    private boolean paused = false;
+    private boolean paused;
     private AttentionMessage disconnectionMessage;
     private final Simulation simulation;
     private final CreateState createState;
@@ -112,11 +112,13 @@ public class PlayState extends GameState
                 }
                 else
                 {
-                    simulation.removeAllBodies();
-
                     Input.setForceMouseHidden(false);
 
+                    createState.deselectInterfaceButtons();
+
                     CLIENT.switchGameState(createState);
+
+                    renderLevel(-simulation.getPlayerCenter().x + 960, simulation.getPlayerCenter().y + 540, gc);
 
                     return;
                 }
@@ -130,13 +132,16 @@ public class PlayState extends GameState
         {
             Input.setForceMouseHidden(true);
 
+            if(Input.RESET.wasJustActivated())
+                simulation.resetPlayer();
+
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
-        double offsetX = -simulation.getPlayerCenter().x + 960;
-        double offsetY = simulation.getPlayerCenter().y + 540;
-        List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
         Vector2 playerCenter = simulation.getPlayerCenter();
+        double offsetX = -playerCenter.x + 960;
+        double offsetY = playerCenter.y + 540;
+        List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
 
         playerCenter.y = -playerCenter.y;
 
@@ -175,7 +180,7 @@ public class PlayState extends GameState
         gc.fill();
         gc.closePath();
 
-        level.render(new Point2D(offsetX, offsetY), 1, gc);
+        renderLevel(offsetX, offsetY, gc);
 
         if(paused)
         {
@@ -197,5 +202,10 @@ public class PlayState extends GameState
 
         if(disconnectionMessage != null)
             disconnectionMessage.render(gc);
+    }
+
+    private void renderLevel(double offsetX, double offsetY, GraphicsContext gc)
+    {
+        level.render(new Point2D(offsetX, offsetY), 1, gc);
     }
 }

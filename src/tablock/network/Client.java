@@ -7,6 +7,8 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Screen;
@@ -48,6 +50,8 @@ public class Client extends Network
 	private GameState gameState = new TitleState();
 	private long timeDuringLastPacketReceived = 0;
 	private long timeDuringLastConnectPacketSent = 0;
+	private boolean displayInfo;
+	private final LoopCounter frameCounter = new LoopCounter();
 	private final InetAddress inetAddress;
 
 	public static void main(String[] args)
@@ -134,14 +138,14 @@ public class Client extends Network
 		return computeTextShape(text, gc.getFont());
 	}
 
-	public static void fillText(double x, double y, String text, Bounds textShape, GraphicsContext gc)
+	public static void fillText(String text, double x, double y, Bounds textShape, GraphicsContext gc)
 	{
 		gc.fillText(text, x - (textShape.getWidth() / 2), y - (textShape.getHeight() / 2));
 	}
 
-	public static void fillText(double x, double y, String text, GraphicsContext gc)
+	public static void fillText(String text, double x, double y, GraphicsContext gc)
 	{
-		fillText(x, y, text, computeTextShape(text, gc), gc);
+		fillText(text, x, y, computeTextShape(text, gc), gc);
 	}
 
 	public Client() throws SocketException, UnknownHostException
@@ -182,6 +186,8 @@ public class Client extends Network
 			@Override
 			public void handle(long l)
 			{
+				int framesPerSecond = frameCounter.computeLoopsPerSecond();
+
 				if(System.currentTimeMillis() - timeDuringLastPacketReceived > 10000 && System.currentTimeMillis() - timeDuringLastConnectPacketSent > 1000)
 				{
 					timeDuringLastConnectPacketSent = System.currentTimeMillis();
@@ -195,16 +201,36 @@ public class Client extends Network
 
 				gameState.renderNextFrame(gc);
 
+				if(Input.DISPLAY_INFO.wasJustActivated())
+					displayInfo = !displayInfo;
+
+				if(displayInfo)
+				{
+					int y = 15;
+
+					gc.setFill(Color.BLACK);
+					gc.setStroke(Color.YELLOW);
+					gc.setLineWidth(2);
+					gc.setFont(Font.font("Arial", 30));
+
+					fillAndStrokeText(framesPerSecond + " FPS", y += 30, gc);
+					fillAndStrokeText( getBytesSent() / 1024 + " KB sent", y += 30, gc);
+					fillAndStrokeText( getBytesReceived() / 1024 + " KB received", y += 30, gc);
+					fillAndStrokeText( "Memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1048576 + " MB out of " + Runtime.getRuntime().maxMemory() / 1048576 + " MB", y += 30, gc);
+				}
+
 				Input.endPoll();
+
+				frameCounter.increment();
 			}
 		};
 
 		renderLoop.start();
 
 		stage.setScene(scene);
-		//stage.setFullScreenExitHint("");
-		//stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-		//stage.setFullScreen(true);
+		stage.setFullScreenExitHint("");
+		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+		stage.setFullScreen(true);
 		stage.show();
 	}
 
@@ -221,5 +247,11 @@ public class Client extends Network
 	public boolean isConnected()
 	{
 		return System.currentTimeMillis() - timeDuringLastPacketReceived <= 10000;
+	}
+
+	private void fillAndStrokeText(String text, double y, GraphicsContext gc)
+	{
+		gc.strokeText(text, 20, y);
+		gc.fillText(text, 20, y);
 	}
 }

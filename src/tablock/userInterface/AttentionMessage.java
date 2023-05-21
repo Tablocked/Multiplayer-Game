@@ -55,7 +55,7 @@ public class AttentionMessage
             gc.setFill(Color.GOLD);
             gc.setFont(Font.font("Arial", 40));
 
-            Client.fillText(960, 490, "ATTENTION", attentionShape, gc);
+            Client.fillText("ATTENTION", 960, 490, attentionShape, gc);
 
             gc.fillText(message, 960 - (messageShape.getWidth() / 2), 545);
             gc.drawImage(Client.WARNING_TEXTURE, 1010 - attentionShape.getWidth(), 430);

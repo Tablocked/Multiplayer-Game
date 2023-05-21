@@ -1,9 +1,11 @@
 package tablock.gameState;
 
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import tablock.core.Input;
 import tablock.level.Level;
 import tablock.level.ObjectSelector;
@@ -23,15 +25,16 @@ public class CreateState extends GameState
 {
     private boolean paused = false;
     private Point2D offset = new Point2D(960, 540);
-    private Point2D mousePositionDuringDragStart;
-    private Point2D mousePositionDuringSelectionStart;
-    private boolean mouseNeverMovedDuringSelection = true;
     private double scale = 1;
-    private boolean interfaceOpen = false;
-    private Point2D worldInterfacePosition = new Point2D(0, 0);
-    private boolean platformMode = false;
+    private int gridSize = 128;
     private double complexPolygonAlertTime = 0;
     private double timeDuringPreviousFrame = 0;
+    private Point2D mousePositionDuringDragStart;
+    private Point2D mousePositionDuringSelectionStart;
+    private Point2D worldInterfacePosition = new Point2D(0, 0);
+    private boolean mouseNeverMovedDuringSelection = true;
+    private boolean interfaceOpen = false;
+    private boolean platformMode = false;
     private CircularButtonStrip currentInterface;
     private final List<Point2D> placedPlatformVertices = new ArrayList<>();
     private final ObjectSelector objectSelector;
@@ -138,9 +141,27 @@ public class CreateState extends GameState
         return worldPoint.multiply(scale).add(offset);
     }
 
+    private Point2D getWorldPoint(Point2D screenPoint)
+    {
+        return screenPoint.subtract(offset).multiply(1 / scale);
+    }
+
     private boolean isScreenPointOffScreen(Point2D screenPoint)
     {
         return !(screenPoint.getX() > 0) || !(screenPoint.getX() < 1920) || !(screenPoint.getY() > 0) || !(screenPoint.getY() < 1080);
+    }
+
+    private void drawGrid(double cellSize, GraphicsContext gc)
+    {
+        Point2D localPoint = getWorldPoint(new Point2D(0, 0)).multiply(1D / cellSize);
+        Point2D snappedPoint = getScreenPoint(new Point2D(Math.ceil(localPoint.getX()) * cellSize, Math.ceil(localPoint.getY()) * cellSize));
+        double increment = cellSize * scale;
+
+        for(double x = snappedPoint.getX(); x < 1920; x += increment)
+            gc.strokeLine(x, 0, x, 1080);
+
+        for(double y = snappedPoint.getY(); y < 1080; y += increment)
+            gc.strokeLine(0, y, 1920, y);
     }
 
     @Override
@@ -148,7 +169,6 @@ public class CreateState extends GameState
     {
         Point2D screenMouse = Input.getMousePosition();
         Point2D worldMouse = screenMouse.subtract(offset).multiply(1 / scale);
-        Point2D screenStartPoint = getScreenPoint(new Point2D(0, 0));
 
         if(!unsavedLevelMessage.isActive())
             if(Input.PAUSE.wasJustActivated())
@@ -198,6 +218,12 @@ public class CreateState extends GameState
                     currentInterface = mainInterface;
                 }
             }
+
+            if(Input.UP_ARROW.wasJustActivated() && gridSize < 512)
+                gridSize *= 2;
+
+            if(Input.DOWN_ARROW.wasJustActivated() && gridSize != 1)
+                gridSize /= 2;
         }
 
         if(!Input.MOUSE_MIDDLE.isActive() || paused)
@@ -241,6 +267,28 @@ public class CreateState extends GameState
                 for(Platform platform : objectSelector.getComplexPlatforms())
                     platform.renderComplexPolygonAlert(opacity, gc);
         }
+
+        double cellSize = Math.max((Math.ceil(100D / gridSize) * gridSize) * Math.pow(2, Math.floor(Math.log(1 / scale) / Math.log(2))), gridSize);
+
+        gc.setFont(Font.font("Arial", 30));
+
+        String gridSizeText = "Grid Size: " + gridSize;
+        Bounds textShape = Client.computeTextShape(gridSizeText, gc);
+
+        gc.setStroke(Color.GRAY);
+        gc.setLineWidth(1);
+
+        drawGrid(cellSize, gc);
+
+        gc.setLineWidth(3);
+
+        drawGrid(cellSize * 5, gc);
+
+        gc.setFill(Color.rgb(50, 50, 50));
+        gc.fillRoundRect(949 - (textShape.getWidth() / 2), 940, textShape.getWidth() + 20, 40, 20, 20);
+        gc.setFill(Color.WHITE);
+
+        Client.fillText(gridSizeText, 960, 988, textShape, gc);
 
         if(!paused)
         {
@@ -372,6 +420,8 @@ public class CreateState extends GameState
             mouseNeverMovedDuringSelection = true;
         }
 
+        Point2D screenStartPoint = getScreenPoint(new Point2D(0, 0));
+
         gc.drawImage(Client.START_POINT_TEXTURE, screenStartPoint.getX() - 50, screenStartPoint.getY() - 50);
 
         for(Platform platform : objectSelector.getComplexPlatforms())
@@ -465,6 +515,11 @@ public class CreateState extends GameState
 
             inputIndicator.render(gc);
         }
+    }
+
+    public void deselectInterfaceButtons()
+    {
+        currentInterface.deselectAllButtons();
     }
 
     public Level getLevel()

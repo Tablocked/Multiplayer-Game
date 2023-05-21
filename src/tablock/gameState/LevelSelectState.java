@@ -269,8 +269,8 @@ public class LevelSelectState extends GameState
 
         String pageText = "Page " + pagedList.getPage() + " of " + pagedList.getMaxPage();
 
-        Client.fillText(960, 990, pageText, gc);
-        Client.fillText(960, 160, "Select Level", gc);
+        Client.fillText(pageText, 960, 990, gc);
+        Client.fillText("Select Level", 960, 160, gc);
 
         if(hostButton != null)
             hostButton.setDisabled(!CLIENT.isConnected());
