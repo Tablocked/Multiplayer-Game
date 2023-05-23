@@ -15,7 +15,7 @@ public abstract class Selectable implements Serializable
 
     public abstract Shape getShape(double scale);
     public abstract void renderObject(GraphicsContext gc);
-    public abstract void translate(Point2D translation);
+    public abstract void translate(Point2D translation, int gridSize);
 
     public void renderOutline(boolean highlighted, boolean selected, GraphicsContext gc)
     {

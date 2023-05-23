@@ -109,12 +109,17 @@ public abstract class Network extends Application
 
                 data = new byte[MAX_PACKET_LENGTH];
                 data[0] = nextLargePacketIdentifier;
-                dataIndex = 1;
+                data[1] = 1;
+                dataIndex = 2;
             }
         }
 
         if(largePacket)
+        {
             nextLargePacketIdentifier++;
+
+            data[1] = 0;
+        }
 
         send(data, dataIndex, inetAddress, port);
     }
@@ -149,18 +154,20 @@ public abstract class Network extends Application
                     }
                     else
                     {
+                        boolean containsIdentifier = incompleteLargePackets.containsKey(largePacketIdentifier);
+
                         incompleteLargePackets.merge(largePacketIdentifier, receivedPacket.getData(), (incompleteData, additionalData) ->
                         {
-                            int additionalDataLength = (receivedPacket.getLength() - 1);
+                            int additionalDataLength = (receivedPacket.getLength() - 2);
                             byte[] mergedData = new byte[incompleteData.length + additionalDataLength];
 
                             System.arraycopy(incompleteData, 0, mergedData, 0, incompleteData.length);
-                            System.arraycopy(additionalData, 1, mergedData, incompleteData.length, additionalDataLength);
+                            System.arraycopy(additionalData, 2, mergedData, incompleteData.length, additionalDataLength);
 
                             return mergedData;
                         });
 
-                        if(receivedPacket.getLength() < MAX_PACKET_LENGTH)
+                        if(containsIdentifier && receivedPacket.getData()[1] == 0)
                         {
                             byte[] data = incompleteLargePackets.get(largePacketIdentifier);
 

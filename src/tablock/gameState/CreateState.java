@@ -194,7 +194,7 @@ public class CreateState extends GameState
                 mousePositionDuringDragStart = screenMouse;
             }
 
-            if(Input.MOUSE_RIGHT.wasJustActivated() && !objectSelector.areAnyObjectsBeingClicked())
+            if(Input.MOUSE_RIGHT.wasJustActivated() && objectSelector.areNoObjectsBeingClicked())
             {
                 if(placedPlatformVertices.size() != 0)
                     placedPlatformVertices.clear();
@@ -235,18 +235,19 @@ public class CreateState extends GameState
         if(mousePositionDuringSelectionStart != null && mousePositionDuringSelectionStart.distance(worldMouse) != 0)
             mouseNeverMovedDuringSelection = false;
 
-        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || objectSelector.areAnyObjectsBeingClicked());
+        boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || !objectSelector.areNoObjectsBeingClicked());
+        Point2D snappedWorldMouse = new Point2D(Math.round(worldMouse.getX() / gridSize) * gridSize, Math.round(worldMouse.getY() / gridSize) * gridSize);
 
-        objectSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
 
         if(!Input.MOUSE_LEFT.isActive() && mouseNeverMovedDuringSelection && mousePositionDuringSelectionStart != null)
             objectSelector.deselectAllObjects();
 
-        objectSelector.tick(objectsAreSelectable, mousePositionDuringSelectionStart == null, worldMouse, scale);
+        objectSelector.tick(objectsAreSelectable, mousePositionDuringSelectionStart == null, worldMouse, snappedWorldMouse, scale, gridSize);
 
         if(interfaceOpen)
         {
-            currentInterface.setFrozen(paused || placedPlatformVertices.size() != 0 || mousePositionDuringSelectionStart != null || objectSelector.areAnyObjectsBeingClicked() || objectSelector.isTransformationInProgress());
+            currentInterface.setFrozen(paused || placedPlatformVertices.size() != 0 || mousePositionDuringSelectionStart != null || !objectSelector.areNoObjectsBeingClicked() || objectSelector.isTransformationInProgress());
             currentInterface.calculateSelectedButtons();
         }
 
@@ -268,12 +269,7 @@ public class CreateState extends GameState
                     platform.renderComplexPolygonAlert(opacity, gc);
         }
 
-        double cellSize = Math.max((Math.ceil(100D / gridSize) * gridSize) * Math.pow(2, Math.floor(Math.log(1 / scale) / Math.log(2))), gridSize);
-
-        gc.setFont(Font.font("Arial", 30));
-
-        String gridSizeText = "Grid Size: " + gridSize;
-        Bounds textShape = Client.computeTextShape(gridSizeText, gc);
+        double cellSize = Math.max(64 * Math.pow(2, Math.floor(Math.log(1 / scale) / Math.log(2))), gridSize);
 
         gc.setStroke(Color.GRAY);
         gc.setLineWidth(1);
@@ -284,22 +280,17 @@ public class CreateState extends GameState
 
         drawGrid(cellSize * 5, gc);
 
-        gc.setFill(Color.rgb(50, 50, 50));
-        gc.fillRoundRect(949 - (textShape.getWidth() / 2), 940, textShape.getWidth() + 20, 40, 20, 20);
-        gc.setFill(Color.WHITE);
-
-        Client.fillText(gridSizeText, 960, 988, textShape, gc);
-
         if(!paused)
         {
-            if(platformMode && objectSelector.areNoObjectsHovered() && (!Input.isShiftPressed() || placedPlatformVertices.size() != 0))
+            if(platformMode && objectSelector.areNoObjectsHovered() && objectSelector.areNoObjectsBeingClicked() && (!Input.isShiftPressed() || placedPlatformVertices.size() != 0))
             {
-                Point2D worldFirstVertex = placedPlatformVertices.size() != 0 ? placedPlatformVertices.get(0) : null;
-                boolean firstVertexBeingHovered = placedPlatformVertices.size() != 0 && getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
+                Point2D worldFirstVertex = placedPlatformVertices.size() == 0 ? null : placedPlatformVertices.get(0);
+                Point2D snappedScreenMouse = getScreenPoint(snappedWorldMouse);
+                boolean firstVertexBeingHovered = worldFirstVertex != null && (getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20 || snappedWorldMouse.equals(worldFirstVertex));
 
                 mousePositionDuringSelectionStart = null;
 
-                if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !objectSelector.areAnyObjectsBeingClicked() && !Input.MOUSE_MIDDLE.isActive())
+                if(Input.MOUSE_LEFT.wasJustActivated() && currentInterface.areNoButtonsSelected() && !Input.MOUSE_MIDDLE.isActive())
                     if(firstVertexBeingHovered)
                     {
                         if(placedPlatformVertices.size() > 2)
@@ -325,7 +316,7 @@ public class CreateState extends GameState
                         }
                     }
                     else
-                        placedPlatformVertices.add(worldMouse);
+                        placedPlatformVertices.add(snappedWorldMouse);
 
                 gc.beginPath();
 
@@ -336,17 +327,14 @@ public class CreateState extends GameState
                     gc.lineTo(screenVertex.getX(), screenVertex.getY());
                 }
 
-                if(placedPlatformVertices.size() != 0)
+                if(worldFirstVertex != null)
                 {
-                    worldFirstVertex = placedPlatformVertices.get(0);
-                    firstVertexBeingHovered = getScreenPoint(worldFirstVertex).distance(screenMouse) <= 20;
-
                     Point2D screenFirstVertex = getScreenPoint(worldFirstVertex);
 
                     if(firstVertexBeingHovered)
                         gc.lineTo(screenFirstVertex.getX(), screenFirstVertex.getY());
                     else
-                        gc.lineTo(screenMouse.getX(), screenMouse.getY());
+                        gc.lineTo(snappedScreenMouse.getX(), snappedScreenMouse.getY());
                 }
 
                 gc.setStroke(Color.GOLD);
@@ -355,8 +343,8 @@ public class CreateState extends GameState
                 gc.stroke();
                 gc.closePath();
 
-                if(!firstVertexBeingHovered && objectSelector.areNoObjectsHovered() && currentInterface.areNoButtonsSelected() && !Input.MOUSE_MIDDLE.isActive())
-                    Vertex.renderAddVertex(screenMouse.getX(), screenMouse.getY(), gc);
+                if(!firstVertexBeingHovered && currentInterface.areNoButtonsSelected() && !Input.MOUSE_MIDDLE.isActive())
+                    Vertex.renderAddVertex(snappedScreenMouse.getX(), snappedScreenMouse.getY(), gc);
 
                 for(Point2D worldVertex : placedPlatformVertices)
                 {
@@ -474,12 +462,26 @@ public class CreateState extends GameState
         }
         else
         {
+            gc.setFont(Font.font("Arial", 30));
+
+            String gridSizeText = "Grid Size: " + gridSize;
+            Bounds textShape = Client.computeTextShape(gridSizeText, gc);
+
+            gc.setFill(Color.rgb(50, 50, 50));
+            gc.fillRoundRect(949 - (textShape.getWidth() / 2), 940, textShape.getWidth() + 20, 40, 20, 20);
+            gc.setFill(Color.WHITE);
+
+            Client.fillText(gridSizeText, 960, 988, textShape, gc);
+
+            gc.drawImage(Client.DOWN_ARROW_TEXTURE, 902 - (textShape.getWidth() / 2), 940);
+            gc.drawImage(Client.UP_ARROW_TEXTURE, 976 + (textShape.getWidth() / 2), 940);
+
             if(objectSelector.areAnyObjectsSelected() && !Input.MOUSE_MIDDLE.isActive() && placedPlatformVertices.size() == 0 && mousePositionDuringSelectionStart == null && currentInterface.areNoButtonsSelected())
             {
                 if(objectSelector.canSelectedObjectsBeDeleted() && objectsAreSelectable)
                     inputIndicator.add("Delete", Client.KEYBOARD_DELETE_TEXTURE);
 
-                if(!objectSelector.areAnyObjectsBeingClicked())
+                if(objectSelector.areNoObjectsBeingClicked())
                 {
                     inputIndicator.add(objectSelector.isScaleInProgress() ? "Confirm Scale" : "Scale", Client.KEYBOARD_S_TEXTURE);
                     inputIndicator.add(objectSelector.isRotationInProgress() ? "Confirm Rotation" : "Rotate", Client.KEYBOARD_R_TEXTURE);
@@ -489,7 +491,7 @@ public class CreateState extends GameState
             if(currentInterface.areNoButtonsSelected())
                 inputIndicator.add("Pan View", Client.MOUSE_MIDDLE_TEXTURE);
 
-            if(!objectSelector.areAnyObjectsBeingClicked())
+            if(objectSelector.areNoObjectsBeingClicked())
             {
                 String mouseRightText;
 

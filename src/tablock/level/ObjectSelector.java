@@ -17,7 +17,6 @@ public class ObjectSelector extends Selector<Platform>
     private Point2D mousePositionDuringRotateStart;
     private List<Point2D[]> vertexPositionsDuringTransformationStart;
     private Point2D objectCenterDuringTransformationStart;
-    private boolean verticesWereNeverSelected = true;
     private Vector2 addVertexIndicatorPosition;
     private final List<Platform> complexPlatforms = new ArrayList<>();
     private final Selector<Vertex> vertexSelector = new Selector<>();
@@ -30,7 +29,7 @@ public class ObjectSelector extends Selector<Platform>
     private void resetVertexSelector()
     {
         vertexSelector.objectBeingClicked = null;
-        vertexSelector.previousMousePositionDuringDrag = null;
+        vertexSelector.snappedWorldMouseDuringDragStart = null;
         vertexSelector.objectWasJustSelected = false;
         vertexSelector.objectWasNeverMoved = true;
 
@@ -50,24 +49,22 @@ public class ObjectSelector extends Selector<Platform>
     }
 
     @Override
-    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, double scale)
+    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
     {
-        vertexSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, scale);
+        vertexSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
 
-        super.calculateHoveredObjects(objectsAreSelectable && addVertexIndicatorPosition == null && vertexPositionsDuringTransformationStart == null && vertexSelector.hoveredObjects.size() == 0 && vertexSelector.objectBeingClicked == null, worldMouse, scale);
+        super.calculateHoveredObjects(objectsAreSelectable && vertexPositionsDuringTransformationStart == null, worldMouse, snappedWorldMouse, scale);
     }
 
-    public void tick(boolean objectsAreSelectable, boolean noSelectionInProgress, Point2D worldMouse, double scale)
+    public void tick(boolean objectsAreSelectable, boolean noSelectionInProgress, Point2D worldMouse, Point2D snappedWorldMouse, double scale, int gridSize)
     {
-        if(objectBeingClicked != null && previousMousePositionDuringDrag != null && vertexSelector.selectedObjects.size() != 0)
-            verticesWereNeverSelected = false;
+        if(vertexSelector.hoveredObjects.size() != 0 || vertexSelector.objectBeingClicked != null || addVertexIndicatorPosition != null)
+            objectBeingClicked = null;
 
-        calculateAndDragSelectedObjects(objectsAreSelectable, verticesWereNeverSelected && addVertexIndicatorPosition == null, worldMouse);
+        calculateAndDragSelectedObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale, gridSize);
 
         if(objectBeingClicked != null && selectedObjects.size() == 1)
             initializeVertexSelector();
-
-        addVertexIndicatorPosition = null;
 
         if(selectedObjects.size() != 0 && objectBeingClicked == null && vertexSelector.objectBeingClicked == null && objectsAreSelectable)
         {
@@ -119,12 +116,16 @@ public class ObjectSelector extends Selector<Platform>
                     objectCenterDuringTransformationStart = null;
                     mousePositionDuringScaleStart = null;
                     mousePositionDuringRotateStart = null;
+
+                    calculateHoveredObjects(true, worldMouse, snappedWorldMouse, scale);
                 }
             }
 
             if(objectCenterDuringTransformationStart != null)
                 transformSelectedObjects(worldMouse);
         }
+
+        addVertexIndicatorPosition = null;
 
         if(selectedObjects.size() == 1 && objectsAreSelectable && vertexPositionsDuringTransformationStart == null)
         {
@@ -133,7 +134,9 @@ public class ObjectSelector extends Selector<Platform>
             if(vertexSelector.objects.size() == 0)
                 initializeVertexSelector();
 
-            if(!objectWasJustSelected)
+            vertexSelector.calculateAndDragSelectedObjects(true, worldMouse, snappedWorldMouse, scale, gridSize);
+
+            if(!objectWasJustSelected && areNoObjectsBeingClicked())
                 for(int i = 0; i < platform.vertexCount; i++)
                 {
                     int endPointIndex = (i + 1) % platform.vertexCount;
@@ -174,21 +177,6 @@ public class ObjectSelector extends Selector<Platform>
                         break;
                     }
                 }
-
-            if(addVertexIndicatorPosition == null && platform.getShape(scale).contains(worldMouse))
-            {
-                if(vertexSelector.objectBeingClicked == null && vertexSelector.hoveredObjects.size() == 0 && !hoveredObjects.contains(platform))
-                    hoveredObjects.add(platform);
-            }
-            else
-            {
-                if(addVertexIndicatorPosition == null)
-                    calculateHoveredObjects(true, worldMouse, scale);
-                else
-                    hoveredObjects.clear();
-            }
-
-            vertexSelector.calculateAndDragSelectedObjects(true, noSelectionInProgress, worldMouse);
 
             if(platform.calculateSimplePolygon())
                 complexPlatforms.remove(platform);
@@ -261,7 +249,7 @@ public class ObjectSelector extends Selector<Platform>
             platform.renderObject(gc);
         }
 
-        renderObjectOutlines(gc);
+        renderObjectOutlines(vertexSelector.hoveredObjects.size() != 0 || vertexSelector.objectBeingClicked != null || addVertexIndicatorPosition != null, gc);
 
         if(!noInterfaceButtonsSelected)
         {
@@ -278,7 +266,7 @@ public class ObjectSelector extends Selector<Platform>
             for(Vertex vertex : vertexSelector.objects)
                 vertex.renderObject(gc);
 
-            vertexSelector.renderObjectOutlines(gc);
+            vertexSelector.renderObjectOutlines(false, gc);
         }
     }
 
@@ -386,9 +374,9 @@ public class ObjectSelector extends Selector<Platform>
         gc.setLineDashes(0);
     }
 
-    public boolean areAnyObjectsBeingClicked()
+    public boolean areNoObjectsBeingClicked()
     {
-        return objectBeingClicked != null || vertexSelector.objectBeingClicked != null;
+        return objectBeingClicked == null && vertexSelector.objectBeingClicked == null;
     }
 
     public boolean areNoObjectsHovered()

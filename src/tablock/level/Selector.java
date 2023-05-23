@@ -13,7 +13,7 @@ import java.util.List;
 public class Selector<T extends Selectable>
 {
     T objectBeingClicked;
-    Point2D previousMousePositionDuringDrag;
+    Point2D snappedWorldMouseDuringDragStart;
     boolean objectWasJustSelected;
     boolean objectWasNeverMoved = true;
     final List<T> objects;
@@ -30,32 +30,32 @@ public class Selector<T extends Selectable>
         this(new ArrayList<>());
     }
 
-    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, double scale)
+    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
     {
         hoveredObjects.clear();
 
-        if(objectsAreSelectable)
+        if(objectsAreSelectable && objectBeingClicked == null)
             for(T object : objects)
                 if(object.getShape(scale).contains(worldMouse))
                 {
                     if(Input.MOUSE_LEFT.wasJustActivated())
                     {
                         objectBeingClicked = object;
-                        previousMousePositionDuringDrag = worldMouse;
+                        snappedWorldMouseDuringDragStart = snappedWorldMouse;
                     }
 
                     hoveredObjects.add(object);
                 }
     }
 
-    public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, boolean forceObjectToBeDeselected, Point2D worldMouse)
+    public void calculateAndDragSelectedObjects(boolean objectsAreSelectable, Point2D worldMouse, Point2D snappedWorldMouse, double scale, int gridSize)
     {
-        if(objectBeingClicked != null && previousMousePositionDuringDrag != null)
+        if(objectBeingClicked != null && snappedWorldMouseDuringDragStart != null)
         {
             if(!selectedObjects.contains(objectBeingClicked))
                 objectWasJustSelected = true;
 
-            if(previousMousePositionDuringDrag.distance(worldMouse) != 0)
+            if(snappedWorldMouseDuringDragStart.distance(snappedWorldMouse) != 0)
                 objectWasNeverMoved = false;
 
             if(!Input.isShiftPressed())
@@ -87,32 +87,46 @@ public class Selector<T extends Selectable>
             {
                 if(Input.MOUSE_LEFT.isActive())
                 {
-                    Point2D translation = worldMouse.subtract(previousMousePositionDuringDrag);
+                    if(!snappedWorldMouse.equals(snappedWorldMouseDuringDragStart))
+                    {
+                        Point2D translation = snappedWorldMouse.subtract(snappedWorldMouseDuringDragStart);
 
-                    for(Selectable selectedObject : selectedObjects)
-                        selectedObject.translate(translation);
+                        for(Selectable selectedObject : selectedObjects)
+                            selectedObject.translate(translation, gridSize);
 
-                    previousMousePositionDuringDrag = worldMouse;
+                        snappedWorldMouseDuringDragStart = snappedWorldMouse;
 
-                    hoveredObjects.add(objectBeingClicked);
+                        hoveredObjects.add(objectBeingClicked);
+                    }
                 }
-                else if(!objectWasJustSelected && objectWasNeverMoved && forceObjectToBeDeselected)
+                else if(!objectWasJustSelected && objectWasNeverMoved)
                     selectedObjects.remove(objectBeingClicked);
             }
         }
 
         if(!Input.MOUSE_LEFT.isActive() || !objectsAreSelectable)
         {
+            if(objectBeingClicked != null)
+            {
+                objectBeingClicked = null;
+
+                calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
+            }
+
             objectWasJustSelected = false;
             objectWasNeverMoved = true;
-            objectBeingClicked = null;
-            previousMousePositionDuringDrag = null;
+            snappedWorldMouseDuringDragStart = null;
         }
     }
 
-    public void renderObjectOutlines(GraphicsContext gc)
+    public void renderObjectOutlines(boolean doNotDrawHoveredObjects, GraphicsContext gc)
     {
-        T lastHoveredObject = hoveredObjects.size() == 0 ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+        T lastHoveredObject;
+
+        if(objectBeingClicked == null)
+            lastHoveredObject = hoveredObjects.size() == 0 || doNotDrawHoveredObjects ? null : hoveredObjects.get(hoveredObjects.size() - 1);
+        else
+            lastHoveredObject = objectBeingClicked;
 
         if(lastHoveredObject != null && !selectedObjects.contains(lastHoveredObject))
             lastHoveredObject.renderOutline(true, false, gc);

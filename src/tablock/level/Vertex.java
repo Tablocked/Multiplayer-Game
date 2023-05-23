@@ -44,10 +44,13 @@ public class Vertex extends Selectable
     }
 
     @Override
-    public void translate(Point2D translation)
+    public void translate(Point2D translation, int gridSize)
     {
         platform.worldXValues[index] += translation.getX();
         platform.worldYValues[index] += translation.getY();
+
+        platform.worldXValues[index] = Math.round(platform.worldXValues[index] / gridSize) * gridSize;
+        platform.worldYValues[index] = Math.round(platform.worldYValues[index] / gridSize) * gridSize;
     }
 
     @Override

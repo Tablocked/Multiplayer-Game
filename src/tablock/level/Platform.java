@@ -51,7 +51,7 @@ public class Platform extends Selectable
     }
 
     @Override
-    public void translate(Point2D translation)
+    public void translate(Point2D translation, int gridSize)
     {
         for(int i = 0; i < vertexCount; i++)
         {

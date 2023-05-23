@@ -42,6 +42,8 @@ public class Client extends Network
 	public static final Image KEYBOARD_S_TEXTURE = getTexture("keyboardS");
 	public static final Image KEYBOARD_R_TEXTURE = getTexture("keyboardR");
 	public static final Image KEYBOARD_SHIFT_AND_MOUSE_LEFT_TEXTURE = getTexture("keyboardShiftAndMouseLeft");
+	public static final Image UP_ARROW_TEXTURE = getTexture("keyboardUpArrow");
+	public static final Image DOWN_ARROW_TEXTURE = getTexture("keyboardDownArrow");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 	public Player player = null;
 	public final List<Integer> hostIdentifiers = new ArrayList<>();
