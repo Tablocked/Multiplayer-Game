@@ -51,8 +51,6 @@ public class Simulation extends World<Body>
 				jumpVector.normalize();
 				movementVector.normalize();
 
-				previousJumpVector = jumpVector.copy();
-
 				if(movementVector.x == 0 && movementVector.y == 0)
 				{
 					double angularVelocity = playerBody.getAngularVelocity();
@@ -110,7 +108,8 @@ public class Simulation extends World<Body>
 						jumpStart = Double.MAX_VALUE;
 					}
 
-					if(Input.JUMP.isActive() && jumpVector.equals(previousJumpVector))
+
+					if(Input.JUMP.isActive() && Math.abs(jumpVector.getAngleBetween(previousJumpVector)) < 0.01)
 					{
 						if(Input.JUMP.wasJustActivated())
 							jumpStart = System.nanoTime();
@@ -165,7 +164,7 @@ public class Simulation extends World<Body>
 							Vector2 projection1 = VectorUtilities.projectPointOntoLine(platformVertex1, platformVertex2, playerVertex1);
 							Vector2 projection2 = VectorUtilities.projectPointOntoLine(platformVertex1, platformVertex2, playerVertex2);
 
-							if(projection1.distance(playerVertex1) < 0.1 && projection2.distance(playerVertex2) < 0.1)
+							if(projection1.distance(playerVertex1) < 0.5 && projection2.distance(playerVertex2) < 0.5)
 							{
 								Vector2 vector = projection2.copy().subtract(projection1);
 

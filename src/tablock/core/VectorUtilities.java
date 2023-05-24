@@ -14,10 +14,10 @@ public class VectorUtilities
 
     public static boolean isProjectionOnLineSegment(Vector2 projection, Vector2 startPoint, Vector2 endPoint)
     {
-        double minX = Math.min(startPoint.x, endPoint.x);
-        double maxX = Math.max(startPoint.x, endPoint.x);
-        double minY = Math.min(startPoint.y, endPoint.y);
-        double maxY = Math.max(startPoint.y, endPoint.y);
+        double minX = Math.min(startPoint.x, endPoint.x) - 0.5;
+        double maxX = Math.max(startPoint.x, endPoint.x) + 0.5;
+        double minY = Math.min(startPoint.y, endPoint.y) - 0.5;
+        double maxY = Math.max(startPoint.y, endPoint.y) + 0.5;
 
         return projection.x >= minX && projection.x <= maxX && projection.y >= minY && projection.y <= maxY;
     }

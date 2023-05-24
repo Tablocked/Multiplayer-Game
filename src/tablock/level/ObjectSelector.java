@@ -49,18 +49,15 @@ public class ObjectSelector extends Selector<Platform>
     }
 
     @Override
-    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
+    public void calculateHoveredObjects(boolean objectsAreSelectable, boolean objectsAreClickable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
     {
-        vertexSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
+        vertexSelector.calculateHoveredObjects(objectsAreSelectable, true, worldMouse, snappedWorldMouse, scale);
 
-        super.calculateHoveredObjects(objectsAreSelectable && vertexPositionsDuringTransformationStart == null, worldMouse, snappedWorldMouse, scale);
+        super.calculateHoveredObjects(objectsAreSelectable && vertexPositionsDuringTransformationStart == null, vertexSelector.hoveredObjects.size() == 0 && vertexSelector.objectBeingClicked == null && addVertexIndicatorPosition == null, worldMouse, snappedWorldMouse, scale);
     }
 
     public void tick(boolean objectsAreSelectable, boolean noSelectionInProgress, Point2D worldMouse, Point2D snappedWorldMouse, double scale, int gridSize)
     {
-        if(vertexSelector.hoveredObjects.size() != 0 || vertexSelector.objectBeingClicked != null || addVertexIndicatorPosition != null)
-            objectBeingClicked = null;
-
         calculateAndDragSelectedObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale, gridSize);
 
         if(objectBeingClicked != null && selectedObjects.size() == 1)
@@ -117,7 +114,7 @@ public class ObjectSelector extends Selector<Platform>
                     mousePositionDuringScaleStart = null;
                     mousePositionDuringRotateStart = null;
 
-                    calculateHoveredObjects(true, worldMouse, snappedWorldMouse, scale);
+                    calculateHoveredObjects(true, true, worldMouse, snappedWorldMouse, scale);
                 }
             }
 
@@ -372,6 +369,14 @@ public class ObjectSelector extends Selector<Platform>
         gc.fillOval(centerX - 15, centerY - 15, 30, 30);
         gc.strokeLine(centerX, centerY, Input.getMousePosition().getX(), Input.getMousePosition().getY());
         gc.setLineDashes(0);
+    }
+
+    public void selectTheFirstComplexPlatform()
+    {
+        resetVertexSelector();
+
+        selectedObjects.clear();
+        selectedObjects.add(complexPlatforms.get(0));
     }
 
     public boolean areNoObjectsBeingClicked()

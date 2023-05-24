@@ -27,7 +27,7 @@ public class CreateState extends GameState
     private Point2D offset = new Point2D(960, 540);
     private double scale = 1;
     private int gridSize = 128;
-    private double complexPolygonAlertTime = 0;
+    private double complexPlatformAlertTime = 0;
     private double timeDuringPreviousFrame = 0;
     private Point2D mousePositionDuringDragStart;
     private Point2D mousePositionDuringSelectionStart;
@@ -70,8 +70,17 @@ public class CreateState extends GameState
 
             new TextButton(960, 540, "Save and Exit", 100, () ->
             {
-                saveLevel(levelPath);
-                switchToLevelSelectScreen();
+                if(objectSelector.getComplexPlatforms().size() == 0)
+                {
+                    saveLevel(levelPath);
+                    switchToLevelSelectScreen();
+                }
+                else
+                {
+                    paused = false;
+
+                    activateComplexPlatformAlert();
+                }
             }),
 
             new TextButton(960, 740, "Exit Without Saving", 100, unsavedLevelMessage::activate)
@@ -118,20 +127,25 @@ public class CreateState extends GameState
         }
     }
 
+    private void activateComplexPlatformAlert()
+    {
+        timeDuringPreviousFrame = System.currentTimeMillis();
+        complexPlatformAlertTime = 1000;
+
+        Point2D platformCenter = objectSelector.getComplexPlatforms().get(0).calculateScreenCenter();
+
+        if(isScreenPointOffScreen(platformCenter))
+            offset = offset.subtract(platformCenter).add(960, 540);
+
+        objectSelector.selectTheFirstComplexPlatform();
+    }
+
     private void switchToPlayScreen(double startX, double startY)
     {
         if(objectSelector.getComplexPlatforms().size() == 0)
             CLIENT.switchGameState(new PlayState(this, startX, startY));
         else
-        {
-            timeDuringPreviousFrame = System.currentTimeMillis();
-            complexPolygonAlertTime = 1000;
-
-            Point2D platformCenter = objectSelector.getComplexPlatforms().get(0).calculateScreenCenter();
-
-            if(isScreenPointOffScreen(platformCenter))
-                offset = offset.subtract(platformCenter).add(960, 540);
-        }
+            activateComplexPlatformAlert();
 
         Input.setForceMouseVisible(false);
     }
@@ -238,7 +252,7 @@ public class CreateState extends GameState
         boolean objectsAreSelectable = !paused && placedPlatformVertices.size() == 0 && mousePositionDuringDragStart == null && mousePositionDuringSelectionStart == null && (currentInterface.areNoButtonsSelected() || !objectSelector.areNoObjectsBeingClicked());
         Point2D snappedWorldMouse = new Point2D(Math.round(worldMouse.getX() / gridSize) * gridSize, Math.round(worldMouse.getY() / gridSize) * gridSize);
 
-        objectSelector.calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
+        objectSelector.calculateHoveredObjects(objectsAreSelectable, true, worldMouse, snappedWorldMouse, scale);
 
         if(!Input.MOUSE_LEFT.isActive() && mouseNeverMovedDuringSelection && mousePositionDuringSelectionStart != null)
             objectSelector.deselectAllObjects();
@@ -253,17 +267,17 @@ public class CreateState extends GameState
 
         objectSelector.render(currentInterface.areNoButtonsSelected(), offset, scale, gc);
 
-        if(complexPolygonAlertTime != 0)
+        if(complexPlatformAlertTime != 0)
         {
             if(!paused)
-                complexPolygonAlertTime -= System.currentTimeMillis() - timeDuringPreviousFrame;
+                complexPlatformAlertTime -= System.currentTimeMillis() - timeDuringPreviousFrame;
 
             timeDuringPreviousFrame = System.currentTimeMillis();
 
-            double opacity = complexPolygonAlertTime / 1000;
+            double opacity = complexPlatformAlertTime / 1000;
 
             if(opacity < 0)
-                complexPolygonAlertTime = 0;
+                complexPlatformAlertTime = 0;
             else
                 for(Platform platform : objectSelector.getComplexPlatforms())
                     platform.renderComplexPolygonAlert(opacity, gc);
@@ -458,6 +472,10 @@ public class CreateState extends GameState
                 pauseButtons.unhighlightAllButtons();
 
             pauseButtons.render(gc);
+
+            if(objectSelector.getComplexPlatforms().size() != 0)
+                gc.drawImage(Client.WARNING_TEXTURE, 1269, 570);
+
             unsavedLevelMessage.render(gc);
         }
         else

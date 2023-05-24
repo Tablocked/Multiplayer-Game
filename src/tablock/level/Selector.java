@@ -30,7 +30,7 @@ public class Selector<T extends Selectable>
         this(new ArrayList<>());
     }
 
-    public void calculateHoveredObjects(boolean objectsAreSelectable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
+    public void calculateHoveredObjects(boolean objectsAreSelectable, boolean objectsAreClickable, Point2D worldMouse, Point2D snappedWorldMouse, double scale)
     {
         hoveredObjects.clear();
 
@@ -38,7 +38,7 @@ public class Selector<T extends Selectable>
             for(T object : objects)
                 if(object.getShape(scale).contains(worldMouse))
                 {
-                    if(Input.MOUSE_LEFT.wasJustActivated())
+                    if(Input.MOUSE_LEFT.wasJustActivated() && objectsAreClickable)
                     {
                         objectBeingClicked = object;
                         snappedWorldMouseDuringDragStart = snappedWorldMouse;
@@ -110,7 +110,7 @@ public class Selector<T extends Selectable>
             {
                 objectBeingClicked = null;
 
-                calculateHoveredObjects(objectsAreSelectable, worldMouse, snappedWorldMouse, scale);
+                calculateHoveredObjects(objectsAreSelectable, true, worldMouse, snappedWorldMouse, scale);
             }
 
             objectWasJustSelected = false;

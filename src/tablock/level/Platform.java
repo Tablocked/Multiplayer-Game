@@ -5,7 +5,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Shape;
+import org.dyn4j.geometry.Geometry;
+import org.dyn4j.geometry.Triangle;
 import org.dyn4j.geometry.Vector2;
+import org.dyn4j.geometry.decompose.SweepLine;
 
 import java.io.Serial;
 
@@ -86,9 +89,8 @@ public class Platform extends Selectable
 
     public boolean calculateSimplePolygon()
     {
-        simplePolygon = true;
+        simplePolygon = false;
 
-        vertexLoop:
         for(int i = 0; i < vertexCount; i++)
         {
             double x1 = worldXValues[i];
@@ -97,25 +99,45 @@ public class Platform extends Selectable
             double y2 = worldYValues[(i + 1) % vertexCount];
 
             for(int j = 0; j < vertexCount; j++)
-            {
-                double x3 = worldXValues[j];
-                double y3 = worldYValues[j];
-                double x4 = worldXValues[(j + 1) % vertexCount];
-                double y4 = worldYValues[(j + 1) % vertexCount];
-                double a = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
-                double t = (((x1 - x3) * (y3 - y4)) - ((y1 - y3) * (x3 - x4))) / a;
-                double u = (((x1 - x3) * (y1 - y2)) - ((y1 - y3) * (x1 - x2))) / a;
-
-                if((t < 1 && t > 0 && u < 1 && u > 0) || (i != j && x1 == x3 && y1 == y3))
+                if(i != j)
                 {
-                    simplePolygon = false;
+                    double x3 = worldXValues[j];
+                    double y3 = worldYValues[j];
+                    double x4 = worldXValues[(j + 1) % vertexCount];
+                    double y4 = worldYValues[(j + 1) % vertexCount];
+                    double a = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
+                    double t = (((x1 - x3) * (y3 - y4)) - ((y1 - y3) * (x3 - x4))) / a;
+                    double u = (((x1 - x3) * (y1 - y2)) - ((y1 - y3) * (x1 - x2))) / a;
 
-                    break vertexLoop;
+                    if((x1 == x3 && y1 == y3) || (t > 0 && t < 1 && u > 0 && u < 1))
+                        return false;
                 }
-            }
         }
 
-        return simplePolygon;
+        try
+        {
+            Vector2[] vertices = convertToVectorArray();
+
+            if(vertices.length > 3)
+            {
+                new SweepLine().triangulate(convertToVectorArray());
+            }
+            else
+            {
+                if(Geometry.getWinding(vertices) < 0)
+                    Geometry.reverseWinding(vertices);
+
+                new Triangle(vertices[0], vertices[1], vertices[2]);
+            }
+        }
+        catch(Exception exception)
+        {
+            return false;
+        }
+
+        simplePolygon = true;
+
+        return true;
     }
 
     public Point2D calculateScreenCenter()
