@@ -118,7 +118,7 @@ public class PlayState extends GameState
 
                     CLIENT.switchGameState(createState);
 
-                    renderLevel(-simulation.getPlayerCenter().x + 960, simulation.getPlayerCenter().y + 540, gc);
+                    renderLevel(-simulation.computePlayerCenter().x + 960, simulation.computePlayerCenter().y + 540, gc);
 
                     return;
                 }
@@ -138,7 +138,7 @@ public class PlayState extends GameState
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
-        Vector2 playerCenter = simulation.getPlayerCenter();
+        Vector2 playerCenter = simulation.computePlayerCenter();
         double offsetX = -playerCenter.x + 960;
         double offsetY = playerCenter.y + 540;
         List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
@@ -149,7 +149,7 @@ public class PlayState extends GameState
         {
             CLIENT.player.x = playerCenter.x;
             CLIENT.player.y = playerCenter.y;
-            CLIENT.player.rotationAngle = -simulation.getPlayerRotationAngle();
+            CLIENT.player.rotationAngle = -simulation.computePlayerRotationAngle();
         }
 
         for(Player onlinePlayer : playersInHostedLevel)

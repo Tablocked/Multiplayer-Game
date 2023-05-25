@@ -40,6 +40,7 @@ public class CreateState extends GameState
     private final ObjectSelector objectSelector;
     private final ImageButton playFromStartButton = new ImageButton(Client.PLAY_FROM_START_BUTTON_TEXTURE, () -> switchToPlayScreen(0, 0), "Play from start");
     private final ImageButton playFromHereButton = new ImageButton(Client.PLAY_FROM_HERE_BUTTON_TEXTURE, () -> switchToPlayScreen(worldInterfacePosition.getX(), worldInterfacePosition.getY()), "Play from here");
+    private final ImageButton saveButton;
     private final ImageButton platformButton = new ImageButton(Client.PLATFORM_BUTTON_TEXTURE, () -> platformMode = !platformMode, "Platform");
     private final InputIndicator inputIndicator = new InputIndicator();
     private final CircularButtonStrip objectInterface = new CircularButtonStrip(platformButton);
@@ -59,7 +60,14 @@ public class CreateState extends GameState
             playFromStartButton,
             playFromHereButton,
             new ImageButton(Client.OBJECTS_BUTTON_TEXTURE, () -> currentInterface = objectInterface, "Objects"),
-            new ImageButton(Client.SAVE_BUTTON_TEXTURE, () -> saveLevel(levelPath),"Save")
+
+            saveButton = new ImageButton(Client.SAVE_BUTTON_TEXTURE, () ->
+            {
+                if(objectSelector.getComplexPlatforms().size() == 0)
+                    saveLevel(levelPath);
+                else
+                    activateComplexPlatformAlert();
+            }, "Save")
         );
 
         pauseButtons = new ButtonStrip
@@ -456,6 +464,7 @@ public class CreateState extends GameState
             {
                 gc.drawImage(Client.WARNING_TEXTURE, playFromStartButton.getX(), playFromStartButton.getY());
                 gc.drawImage(Client.WARNING_TEXTURE, playFromHereButton.getX(), playFromHereButton.getY());
+                gc.drawImage(Client.WARNING_TEXTURE, saveButton.getX(), saveButton.getY());
             }
         }
         else
