@@ -2,6 +2,7 @@ package tablock.core;
 
 import org.dyn4j.collision.Fixture;
 import org.dyn4j.dynamics.Body;
+import org.dyn4j.dynamics.BodyFixture;
 import org.dyn4j.dynamics.TimeStep;
 import org.dyn4j.geometry.Geometry;
 import org.dyn4j.geometry.MassType;
@@ -16,7 +17,7 @@ import org.dyn4j.world.listener.StepListenerAdapter;
 public class Simulation extends World<Body>
 {
 	private Vector2 jumpVector = new Vector2(0,0);
-	private Vector2 previousJumpVector;
+	private Vector2 previousJumpVector = new Vector2(0,0);
 	private Vector2 movementVector = new Vector2(0, 0);
 	private double previousJumpAngle = -1;
 	private double previousPlayerAngle = -1;
@@ -24,14 +25,19 @@ public class Simulation extends World<Body>
 	private boolean onGround;
 	private double timeDuringJumpStart = Double.MAX_VALUE;
 	private byte playerAnimationDirection;
+	private byte playerJumpProgress = -128;
 	private PlayerAnimationType playerAnimationType = PlayerAnimationType.NONE;
 	private final Body playerBody = new Body();
-	private final Vector2[] straightDoubleJumpVertices = {new Vector2(-25, -25), new Vector2(25, -25), new Vector2(12.5, 0), new Vector2(25, 25), new Vector2(-25, 25)};
-	private final Vector2[] diagonalDoubleJumpVertices = {new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(-6.25, 25), new Vector2(-12.5, 12.5), new Vector2(-25, 6.25)};
+	private final Vector2[] straightDoubleJumpVertices = {new Vector2(25, -25), new Vector2(-25, -25), new Vector2(-12.5, 0), new Vector2(-25, 25), new Vector2(25, 25)};
+	private final Vector2[] diagonalDoubleJumpVertices = {new Vector2(-25, 25), new Vector2(25, 25), new Vector2(25, -25), new Vector2(-6.25, -25), new Vector2(-12.5, -12.5), new Vector2(-25, -6.25)};
 	
 	public Simulation(double startX, double startY)
 	{
-		playerBody.addFixture(Geometry.createRectangle(50, 50));
+		BodyFixture bodyFixture = new BodyFixture(Geometry.createRectangle(50, 50));
+
+		bodyFixture.setFriction(0);
+
+		playerBody.addFixture(bodyFixture);
 		playerBody.translate(startX, startY);
 		playerBody.setMass(MassType.NORMAL);
 
@@ -59,17 +65,17 @@ public class Simulation extends World<Body>
 
 					if(Input.LEFT.isActive() && angularVelocity < 1)
 					{
-						playerBody.applyTorque(Input.LEFT.getValue() * 200000);
+						playerBody.applyTorque(Input.LEFT.getValue() * 400000);
 					}
 
 					if(Input.RIGHT.isActive() && angularVelocity > -1)
 					{
-						playerBody.applyTorque(Input.RIGHT.getValue() * -200000);
+						playerBody.applyTorque(Input.RIGHT.getValue() * -400000);
 					}
 
 					if(angularVelocity > 0)
 					{
-						playerBody.applyTorque(-50000);
+						playerBody.applyTorque(-200000);
 
 						if(playerBody.getAngularVelocity() < 0)
 							playerBody.setAngularVelocity(0);
@@ -77,7 +83,7 @@ public class Simulation extends World<Body>
 
 					if(angularVelocity < 0)
 					{
-						playerBody.applyTorque(50000);
+						playerBody.applyTorque(200000);
 
 						if(playerBody.getAngularVelocity() > 0)
 							playerBody.setAngularVelocity(0);
@@ -85,39 +91,50 @@ public class Simulation extends World<Body>
 				}
 				else
 				{
+					Vector2 linearVelocity = playerBody.getLinearVelocity().copy();
+
 					if(Input.LEFT.isActive())
-						playerBody.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * -20000));
+						playerBody.applyForce(movementVector.copy().multiply(Input.LEFT.getValue() * -50000));
 
 					if(Input.RIGHT.isActive())
-						playerBody.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * 20000));
+						playerBody.applyForce(movementVector.copy().multiply(Input.RIGHT.getValue() * 50000));
+
+					playerBody.applyForce(linearVelocity.multiply(-1000));
 				}
 
 				Vector2 localJumpVector = playerBody.getLocalVector(jumpVector);
+				boolean straightJumpVector = (localJumpVector.x > -0.01 && localJumpVector.x < 0.01) || (localJumpVector.y > -0.01 && localJumpVector.y < 0.01);
+
+				if(!onGround || Math.abs(jumpVector.getAngleBetween(previousJumpVector)) > 0.01)
+				{
+					timeDuringJumpStart = Double.MAX_VALUE;
+					playerJumpProgress = -128;
+				}
 
 				if(onGround)
 				{
-					double jumpTime = System.nanoTime() - timeDuringJumpStart;
+					if(Input.JUMP.wasJustActivated())
+						timeDuringJumpStart = System.nanoTime();
 
-					if((!Input.JUMP.isActive() || jumpTime > 1e9) && jumpTime > 25e7)
+					if(timeDuringJumpStart != Double.MAX_VALUE)
 					{
-						playerBody.applyForce(jumpVector.copy().multiply((0.0107 * jumpTime) + 2333333));
+						double floatingPointDirection = localJumpVector.getDirection() / (Math.PI / 2);
+
+						playerAnimationDirection = (byte) (straightJumpVector ? Math.round(floatingPointDirection) : Math.floor(floatingPointDirection));
+						playerJumpProgress = (byte) Math.min(applyLinearRate(0, -128, straightJumpVector ? 5 * 1e8 : 1e9, 127, System.nanoTime() - timeDuringJumpStart), 127);
+					}
+
+					if((!Input.JUMP.isActive() || playerJumpProgress == 127) && playerJumpProgress > -128)
+					{
+						double jumpForce = (800 * (((int) playerJumpProgress) + 128)) + 10000;
+
+						playerBody.applyImpulse(jumpVector.copy().multiply(straightJumpVector ? jumpForce : jumpForce * 2));
 
 						canDoubleJump = true;
-						playerAnimationDirection = (byte) Math.round(jumpVector.getAngleBetween(computePlayerRotationAngle()) / (Math.PI / 2));
-
-						playerAnimationType = (localJumpVector.x > -0.01 && localJumpVector.x < 0.01) || (localJumpVector.y > -0.01 && localJumpVector.y < 0.01) ? PlayerAnimationType.STRAIGHT_DOUBLE_JUMP : PlayerAnimationType.DIAGONAL_DOUBLE_JUMP;
+						playerAnimationType = straightJumpVector ? PlayerAnimationType.STRAIGHT_DOUBLE_JUMP : PlayerAnimationType.DIAGONAL_DOUBLE_JUMP;
 						previousJumpAngle = jumpVector.getDirection();
 						previousPlayerAngle = computePlayerRotationAngle();
-						timeDuringJumpStart = Double.MAX_VALUE;
 					}
-
-					if(Input.JUMP.isActive() && Math.abs(jumpVector.getAngleBetween(previousJumpVector)) < 0.01)
-					{
-						if(Input.JUMP.wasJustActivated())
-							timeDuringJumpStart = System.nanoTime();
-					}
-					else
-						timeDuringJumpStart = Double.MAX_VALUE;
 				}
 				else if(canDoubleJump && Input.JUMP.wasJustActivated())
 				{
@@ -125,19 +142,16 @@ public class Simulation extends World<Body>
 
 					playerBody.clearForce();
 					playerBody.setLinearVelocity(0, 0);
-					playerBody.applyForce(new Vector2(previousJumpAngle - playerAngleDifference).multiply(10000000));
+					playerBody.applyImpulse(new Vector2(previousJumpAngle - playerAngleDifference).multiply(200000));
 
 					canDoubleJump = false;
 				}
-
-				if(!onGround)
-					timeDuringJumpStart = Double.MAX_VALUE;
 
 				previousJumpVector = jumpVector.copy();
 
 				if(!canDoubleJump)
 					if(timeDuringJumpStart != Double.MAX_VALUE)
-						playerAnimationType = PlayerAnimationType.JUMPING;
+						playerAnimationType = straightJumpVector ? PlayerAnimationType.STRAIGHT_JUMP : PlayerAnimationType.DIAGONAL_JUMP;
 					else
 						playerAnimationType = PlayerAnimationType.NONE;
 			}
@@ -208,21 +222,11 @@ public class Simulation extends World<Body>
 		return getFixtureVertices(body, body.getFixture(0));
 	}
 
-	private Vector2[] transformVertexTemplate(Vector2[] vertexTemplate, double offsetAngle)
+	private double applyLinearRate(double startX, double startY, double endX, double endY, double x)
 	{
-		double playerAngleDifference = previousPlayerAngle - playerBody.getTransform().getRotationAngle();
-		double doubleJumpAngle = previousJumpAngle - playerAngleDifference;
-		Vector2 rotationOffset = new Vector2(doubleJumpAngle + offsetAngle);
-		Vector2[] transformedVertexTemplate = new Vector2[vertexTemplate.length];
+		double rate = (startY - endY) / (startX - endX);
 
-		for(int i = 0; i < transformedVertexTemplate.length; i++)
-		{
-			Vector2 transformedVertex = vertexTemplate[i].copy().rotate(playerBody.getLocalVector(rotationOffset).getDirection());
-
-			transformedVertexTemplate[i] = playerBody.getWorldPoint(transformedVertex);
-		}
-
-		return transformedVertexTemplate;
+		return (rate * x) + (startY - (rate * startX));
 	}
 
 	private Vector2[] mapVerticesOntoPlayer(Vector2[] vertices)
@@ -244,53 +248,29 @@ public class Simulation extends World<Body>
 
 	public Vector2[] getPlayerVertices()
 	{
-		Vector2[] playerVertices = getBodyVertices(playerBody);
-
 		switch(playerAnimationType)
 		{
-			case NONE ->
-			{
+			case NONE: return getBodyVertices(playerBody);
 
+			case STRAIGHT_JUMP:
+			{
+				double length = applyLinearRate(-128, 25, 127, -10, playerJumpProgress);
+
+				return mapVerticesOntoPlayer(new Vector2[]{new Vector2(-25, 25), new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, 25)});
 			}
 
-			case JUMPING ->
+			case DIAGONAL_JUMP:
 			{
+				double length = applyLinearRate(-128, 25, 127, 0, playerJumpProgress);
 
+				return mapVerticesOntoPlayer(new Vector2[]{new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, length), new Vector2(-25, length)});
 			}
 
-			case STRAIGHT_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(straightDoubleJumpVertices);
-			case DIAGONAL_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(diagonalDoubleJumpVertices);
+			case STRAIGHT_DOUBLE_JUMP: return mapVerticesOntoPlayer(straightDoubleJumpVertices);
+			case DIAGONAL_DOUBLE_JUMP: return mapVerticesOntoPlayer(diagonalDoubleJumpVertices);
 		}
 
-//		if(canDoubleJump)
-//		{
-//			double playerAngleDifference = previousPlayerAngle - playerBody.getTransform().getRotationAngle();
-//			Vector2 localJumpVector = playerBody.getLocalVector(new Vector2(previousJumpAngle - playerAngleDifference));
-//
-//			if(Math.round(localJumpVector.x) != 0 && Math.round(localJumpVector.y) != 0)
-//				playerVertices = transformVertexTemplate(diagonalDoubleJumpVertices, Math.PI / 4);
-//			else
-//				playerVertices = transformVertexTemplate(straightDoubleJumpVertices, Math.PI / 2);
-//		}
-//		else if(jumpStart != Double.MAX_VALUE)
-//		{
-//			Vector2 localJumpVector = playerBody.getLocalVector(jumpVector);
-//			Vector2[] components = {localJumpVector.getXComponent(), localJumpVector.getYComponent()};
-//
-//			for(Vector2 component : components)
-//			{
-//				int direction = (int) Math.round((component.getDirection() + (Math.PI * 2)) / (Math.PI / 2));
-//				int index1 = (direction + 1) % playerVertices.length;
-//				int index2 = (direction + 2) % playerVertices.length;
-//				double jumpTime = System.nanoTime() - jumpStart;
-//				Vector2 shrinkVector = component.copy().rotate(playerBody.getTransform().getRotationAngle()).multiply(4e-8 * jumpTime);
-//
-//				playerVertices[index1].subtract(shrinkVector);
-//				playerVertices[index2].subtract(shrinkVector);
-//			}
-//		}
-
-		return playerVertices;
+		return new Vector2[0];
 	}
 
 	public double computePlayerRotationAngle()
@@ -312,7 +292,8 @@ public class Simulation extends World<Body>
 	private enum PlayerAnimationType
 	{
 		NONE,
-		JUMPING,
+		STRAIGHT_JUMP,
+		DIAGONAL_JUMP,
 		STRAIGHT_DOUBLE_JUMP,
 		DIAGONAL_DOUBLE_JUMP
 	}
