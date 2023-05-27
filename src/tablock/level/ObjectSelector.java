@@ -6,7 +6,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import org.dyn4j.geometry.Vector2;
 import tablock.core.Input;
-import tablock.core.VectorUtilities;
+import tablock.core.VectorMath;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -140,9 +140,9 @@ public class ObjectSelector extends Selector<Platform>
                     Vector2 startPoint = new Vector2(platform.worldXValues[i], platform.worldYValues[i]);
                     Vector2 endPoint = new Vector2(platform.worldXValues[endPointIndex], platform.worldYValues[endPointIndex]);
                     Vector2 worldMouseVector = new Vector2(worldMouse.getX(), worldMouse.getY());
-                    Vector2 mouseProjection = VectorUtilities.projectPointOntoLine(startPoint, endPoint, worldMouseVector);
+                    Vector2 mouseProjection = VectorMath.projectPointOntoLine(startPoint, endPoint, worldMouseVector);
 
-                    if(VectorUtilities.isProjectionOnLineSegment(mouseProjection, startPoint, endPoint) && mouseProjection.distance(worldMouseVector) < 20 * (1 / scale))
+                    if(VectorMath.isProjectionOnLineSegment(mouseProjection, startPoint, endPoint) && mouseProjection.distance(worldMouseVector) < 20 * (1 / scale))
                     {
                         if(Input.MOUSE_LEFT.wasJustActivated() && vertexSelector.hoveredObjects.size() == 0)
                         {

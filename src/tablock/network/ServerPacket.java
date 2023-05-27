@@ -3,6 +3,9 @@ package tablock.network;
 import tablock.gameState.PlayState;
 import tablock.level.Level;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public enum ServerPacket
 {
     TICK
@@ -13,14 +16,30 @@ public enum ServerPacket
             byte[][] dataTypes = new byte[0][];
 
             if(client.player != null)
-                dataTypes = new byte[][]{DataType.DOUBLE.encode(client.player.x), DataType.DOUBLE.encode(client.player.y), DataType.DOUBLE.encode(client.player.rotationAngle)};
+                dataTypes = client.player.encode();
 
             client.send(ClientPacket.TICK, dataTypes);
-            client.playersInHostedLevel.clear();
 
             if(decodedData.length > 0)
-                for(int i = 0; i < decodedData.length; i += 3)
-                    client.playersInHostedLevel.add(new Player((double) decodedData[i], (double) decodedData[i + 1], (double) decodedData[i + 2]));
+            {
+                ArrayList<Byte> identifiers = new ArrayList<>();
+
+                for(int i = 0; i < decodedData.length; i += 7)
+                {
+                    byte identifier = (byte) decodedData[i];
+
+                    identifiers.add(identifier);
+
+                    if(client.playersInHostedLevel.containsKey(identifier))
+                        client.playersInHostedLevel.get(identifier).decode(Arrays.copyOfRange(decodedData, i + 1, i + 7));
+                    else
+                        client.playersInHostedLevel.put(identifier, new Player());
+                }
+
+                client.playersInHostedLevel.keySet().removeIf((identifier) -> !identifiers.contains(identifier));
+            }
+            else
+                client.playersInHostedLevel.clear();
         }
     },
 
@@ -45,8 +64,6 @@ public enum ServerPacket
         @Override
         void respondToServerPacket(Object[] decodedData, Client client)
         {
-            client.player = new Player(0, 0, 0);
-
             client.switchGameState(new PlayState((Level) Client.deserializeObject((byte[]) decodedData[0])));
         }
     };

@@ -2,8 +2,10 @@ package tablock.core;
 
 import org.dyn4j.geometry.Vector2;
 
-public class VectorUtilities
+public final class VectorMath
 {
+    private VectorMath() {}
+
     public static Vector2 projectPointOntoLine(Vector2 startPoint, Vector2 endPoint, Vector2 point)
     {
         Vector2 projectionLine = endPoint.copy().subtract(startPoint);
@@ -20,5 +22,12 @@ public class VectorUtilities
         double maxY = Math.max(startPoint.y, endPoint.y) + 0.5;
 
         return projection.x >= minX && projection.x <= maxX && projection.y >= minY && projection.y <= maxY;
+    }
+
+    public static double computeLinearEquation(double startX, double startY, double endX, double endY, double x)
+    {
+        double rate = (startY - endY) / (startX - endX);
+
+        return (rate * x) + (startY - (rate * startX));
     }
 }

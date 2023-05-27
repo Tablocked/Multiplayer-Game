@@ -8,6 +8,7 @@ import org.dyn4j.geometry.*;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
 import tablock.core.Simulation;
+import tablock.core.VectorMath;
 import tablock.level.Level;
 import tablock.level.Platform;
 import tablock.network.ClientPacket;
@@ -16,7 +17,6 @@ import tablock.userInterface.AttentionMessage;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class PlayState extends GameState
@@ -27,6 +27,9 @@ public class PlayState extends GameState
     private final Simulation simulation;
     private final CreateState createState;
     private final Level level;
+    private final Vector2[] idlePlayerVertices = {new Vector2(-25, -25), new Vector2(25, -25), new Vector2(25, 25), new Vector2(-25, 25)};
+    private final Vector2[] straightDoubleJumpVertices = {new Vector2(25, -25), new Vector2(-25, -25), new Vector2(-12.5, 0), new Vector2(-25, 25), new Vector2(25, 25)};
+    private final Vector2[] diagonalDoubleJumpVertices = {new Vector2(-25, 25), new Vector2(25, 25), new Vector2(25, -25), new Vector2(-6.25, -25), new Vector2(-12.5, -12.5), new Vector2(-25, -6.25)};
 
     private final ButtonStrip pauseButtons = new ButtonStrip
     (
@@ -41,6 +44,8 @@ public class PlayState extends GameState
         simulation = new Simulation(0, 0);
         createState = null;
         this.level = level;
+
+        CLIENT.player = simulation.player;
 
         addObjectsToSimulation();
     }
@@ -65,10 +70,10 @@ public class PlayState extends GameState
 
             if(vertices.length > 3)
             {
-                List<Triangle> fixtures = sweepLine.triangulate(vertices);
+                List<Triangle> triangles = sweepLine.triangulate(vertices);
 
-                for(Triangle fixture : fixtures)
-                    body.addFixture(fixture);
+                for(Triangle triangle : triangles)
+                    body.addFixture(triangle);
             }
             else
             {
@@ -88,10 +93,57 @@ public class PlayState extends GameState
     {
         CLIENT.player = null;
 
-        CLIENT.playersInHostedLevel.clear();
-
         CLIENT.send(ClientPacket.LEAVE_HOST);
         CLIENT.switchGameState(new TitleState());
+    }
+
+    private Vector2[] mapVerticesOntoPlayer(Player player, Vector2[] vertices)
+    {
+        Vector2[] mappedVertices = new Vector2[vertices.length];
+        double angle = player.rotationAngle + (player.animationDirection * (Math.PI / 2));
+
+        for(int i = 0; i < vertices.length; i++)
+            mappedVertices[i] = vertices[i].copy().rotate(angle).add(player.x, player.y);
+
+        return mappedVertices;
+    }
+
+    private void drawPlayer(Player player, double offsetX, double offsetY, GraphicsContext gc)
+    {
+        Vector2[] playerVertices = null;
+
+        switch(Simulation.PlayerAnimationType.values()[player.animationType])
+        {
+            case NONE -> playerVertices = mapVerticesOntoPlayer(player, idlePlayerVertices);
+
+            case STRAIGHT_JUMP ->
+            {
+                double length = VectorMath.computeLinearEquation(-128, 25, 127, -10, player.jumpProgress);
+
+                playerVertices = mapVerticesOntoPlayer(player, new Vector2[]{new Vector2(-25, 25), new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, 25)});
+            }
+
+            case DIAGONAL_JUMP ->
+            {
+                double length = VectorMath.computeLinearEquation(-128, 25, 127, 0, player.jumpProgress);
+
+                playerVertices = mapVerticesOntoPlayer(player, new Vector2[]{new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, length), new Vector2(-25, length)});
+            }
+
+            case STRAIGHT_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(player, straightDoubleJumpVertices);
+            case DIAGONAL_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(player, diagonalDoubleJumpVertices);
+        }
+
+        if(playerVertices != null)
+        {
+            gc.beginPath();
+
+            for(Vector2 vertex : playerVertices)
+                gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
+
+            gc.fill();
+            gc.closePath();
+        }
     }
 
     @Override
@@ -118,7 +170,7 @@ public class PlayState extends GameState
 
                     CLIENT.switchGameState(createState);
 
-                    renderLevel(-simulation.computePlayerCenter().x + 960, simulation.computePlayerCenter().y + 540, gc);
+                    renderLevel(-simulation.player.x + 960, simulation.player.y + 540, gc);
 
                     return;
                 }
@@ -138,47 +190,21 @@ public class PlayState extends GameState
             simulation.update(elapsedTime * 10, Integer.MAX_VALUE);
         }
 
-        Vector2 playerCenter = simulation.computePlayerCenter();
-        double offsetX = -playerCenter.x + 960;
-        double offsetY = playerCenter.y + 540;
-        List<Player> playersInHostedLevel = new ArrayList<>(CLIENT.playersInHostedLevel);
+        double offsetX = -simulation.player.x + 960;
+        double offsetY = simulation.player.y + 540;
 
-        playerCenter.y = -playerCenter.y;
-
-        if(CLIENT.player != null)
+        for(Player onlinePlayer : CLIENT.playersInHostedLevel.values())
         {
-            CLIENT.player.x = playerCenter.x;
-            CLIENT.player.y = playerCenter.y;
-            CLIENT.player.rotationAngle = -simulation.computePlayerRotationAngle();
-        }
-
-        for(Player onlinePlayer : playersInHostedLevel)
-        {
-            double[] xValues = {-25, 25, 25, -25};
-            double[] yValues = {-25, -25, 25, 25};
-            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(onlinePlayer.x - playerCenter.x, 2) + Math.pow(onlinePlayer.y - playerCenter.y, 2))) + 0.2, 1);
-
-            for(int i = 0; i < 4; i++)
-            {
-                double x = xValues[i];
-                double y = yValues[i];
-
-                xValues[i] = ((x * Math.cos(onlinePlayer.rotationAngle)) - (y * Math.sin(onlinePlayer.rotationAngle))) + onlinePlayer.x + offsetX;
-                yValues[i] = ((x * Math.sin(onlinePlayer.rotationAngle)) + (y * Math.cos(onlinePlayer.rotationAngle))) + onlinePlayer.y + offsetY;
-            }
+            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(onlinePlayer.x - simulation.player.x, 2) + Math.pow(onlinePlayer.y - simulation.player.y, 2))) + 0.2, 1);
 
             gc.setFill(Color.rgb(255, 0, 0, opacity));
-            gc.fillPolygon(xValues, yValues, 4);
+
+            drawPlayer(onlinePlayer, offsetX, offsetY, gc);
         }
 
         gc.setFill(Color.RED);
-        gc.beginPath();
 
-        for(Vector2 vertex : simulation.getPlayerVertices())
-            gc.lineTo(vertex.x + offsetX, -vertex.y + offsetY);
-
-        gc.fill();
-        gc.closePath();
+        drawPlayer(simulation.player, offsetX, offsetY, gc);
 
         renderLevel(offsetX, offsetY, gc);
 

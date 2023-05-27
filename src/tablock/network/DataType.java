@@ -4,6 +4,21 @@ import java.nio.ByteBuffer;
 
 public enum DataType
 {
+    BYTE
+    {
+        @Override
+        byte[] toByteArray(Object data)
+        {
+            return new byte[]{(byte) data};
+        }
+
+        @Override
+        Object decode(byte[] data)
+        {
+            return data[0];
+        }
+    },
+
     INTEGER
     {
         @Override

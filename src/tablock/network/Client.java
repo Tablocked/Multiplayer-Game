@@ -7,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -22,6 +21,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class Client extends Network
@@ -48,7 +48,7 @@ public class Client extends Network
 	public Player player = null;
 	public final List<Integer> hostIdentifiers = new ArrayList<>();
 	public final List<String> hostedLevelNames = new ArrayList<>();
-	public final List<Player> playersInHostedLevel = new ArrayList<>();
+	public final HashMap<Byte, Player> playersInHostedLevel = new HashMap<>();
 	private GameState gameState = new TitleState();
 	private long timeDuringLastPacketReceived = 0;
 	private long timeDuringLastConnectPacketSent = 0;
@@ -230,9 +230,9 @@ public class Client extends Network
 		renderLoop.start();
 
 		stage.setScene(scene);
-		stage.setFullScreenExitHint("");
-		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-		stage.setFullScreen(true);
+//		stage.setFullScreenExitHint("");
+//		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+//		stage.setFullScreen(true);
 		stage.show();
 	}
 

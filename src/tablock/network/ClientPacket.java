@@ -10,11 +10,7 @@ public enum ClientPacket
             clientIdentifier.timeDuringLastPacketReceived = System.currentTimeMillis();
 
             if(decodedData.length > 0)
-            {
-                clientIdentifier.player.x = (double) decodedData[0];
-                clientIdentifier.player.y = (double) decodedData[1];
-                clientIdentifier.player.rotationAngle = (double) decodedData[2];
-            }
+                clientIdentifier.player.decode(decodedData);
         }
     },
 
@@ -57,9 +53,7 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            server.hostedLevels.add(new HostedLevel(server.nextHostIdentifier, (byte[]) decodedData[0], (String) decodedData[1], clientIdentifier));
-
-            server.nextHostIdentifier++;
+            server.hostedLevels.add(new HostedLevel(clientIdentifier.identifier, (byte[]) decodedData[0], (String) decodedData[1], clientIdentifier));
         }
     },
 

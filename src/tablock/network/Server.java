@@ -19,9 +19,9 @@ import java.util.List;
 
 public class Server extends Network
 {
-    int nextHostIdentifier = 0;
     final List<ClientIdentifier> clients = new ArrayList<>();
     final List<HostedLevel> hostedLevels = new ArrayList<>();
+    private byte nextClientIdentifier = 0;
     private final LoopCounter tickCounter = new LoopCounter();
 
     public static void main(String[] args)
@@ -50,7 +50,9 @@ public class Server extends Network
                 return;
             }
 
-        clients.add(new ClientIdentifier(receivedPacket.getAddress(), receivedPacket.getPort()));
+        clients.add(new ClientIdentifier(nextClientIdentifier, receivedPacket.getAddress(), receivedPacket.getPort()));
+
+        nextClientIdentifier++;
     }
 
     @Override
@@ -83,20 +85,20 @@ public class Server extends Network
 
                     if(clientIdentifier.clientsInHostedLevel != null)
                     {
-                        ArrayList<ClientIdentifier> copyOfClientsInHostedLevel = new ArrayList<>(clientIdentifier.clientsInHostedLevel);
+                        ArrayList<ClientIdentifier> clientsInHostedLevel = new ArrayList<>(clientIdentifier.clientsInHostedLevel);
 
-                        copyOfClientsInHostedLevel.remove(clientIdentifier);
+                        clientsInHostedLevel.remove(clientIdentifier);
 
-                        dataTypes = new byte[copyOfClientsInHostedLevel.size() * 3][];
+                        dataTypes = new byte[clientsInHostedLevel.size() * 7][];
 
-                        for(int i = 0; i < copyOfClientsInHostedLevel.size(); i++)
+                        for(int i = 0; i < clientsInHostedLevel.size(); i++)
                         {
-                            Player player = copyOfClientsInHostedLevel.get(i).player;
-                            int index = i * 3;
+                            ClientIdentifier clientInHostedLevel = clientsInHostedLevel.get(i);
+                            int index = i * 7;
 
-                            dataTypes[index] = DataType.DOUBLE.encode(player.x);
-                            dataTypes[index + 1] = DataType.DOUBLE.encode(player.y);
-                            dataTypes[index + 2] = DataType.DOUBLE.encode(player.rotationAngle);
+                            dataTypes[index] = DataType.BYTE.encode(clientInHostedLevel.identifier);
+
+                            System.arraycopy(clientInHostedLevel.player.encode(), 0, dataTypes, index + 1, 6);
                         }
                     }
 

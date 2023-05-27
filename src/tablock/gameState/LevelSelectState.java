@@ -11,7 +11,6 @@ import tablock.level.Level;
 import tablock.network.Client;
 import tablock.network.ClientPacket;
 import tablock.network.DataType;
-import tablock.network.Player;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.PagedList;
 import tablock.userInterface.TextButton;
@@ -60,8 +59,6 @@ public class LevelSelectState extends GameState
                 {
                     CLIENT.send(ClientPacket.HOST, DataType.BYTE_ARRAY.encode(Files.readAllBytes(levelPointer.getFile().toPath())), DataType.STRING.encode(levelPointer.getFile().getName()));
                     CLIENT.switchGameState(new PlayState(deserializeLevel(levelPointer.getFile())));
-
-                    CLIENT.player = new Player(0, 0, 0);
                 }
                 catch(IOException exception)
                 {
