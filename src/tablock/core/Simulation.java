@@ -13,7 +13,6 @@ import org.dyn4j.world.PhysicsWorld;
 import org.dyn4j.world.World;
 import org.dyn4j.world.listener.ContactListenerAdapter;
 import org.dyn4j.world.listener.StepListenerAdapter;
-import tablock.network.Player;
 
 public class Simulation extends World<Body>
 {
@@ -109,7 +108,7 @@ public class Simulation extends World<Body>
 
 				player.x = playerCenter.x;
 				player.y = playerCenter.y;
-				player.rotationAngle = computePlayerRotationAngle();
+				player.rotationAngle -= playerBody.getTransform().getRotation().toVector().getAngleBetween(playerBody.getPreviousTransform().getRotation().toVector());
 
 				if(movementVector.x == 0 && movementVector.y == 0)
 				{
@@ -229,13 +228,15 @@ public class Simulation extends World<Body>
 		return computeFixtureVertices(body, body.getFixture(0));
 	}
 
-	private double computePlayerRotationAngle()
-	{
-		return playerBody.getTransform().getRotationAngle();
-	}
-
 	public void resetPlayer()
 	{
+		player.x = 0;
+		player.y = 0;
+		player.rotationAngle = 0;
+		player.animationType = 0;
+		player.animationDirection = 0;
+		player.jumpProgress = 0;
+
 		playerBody.translateToOrigin();
 		playerBody.setLinearVelocity(0, 0);
 		playerBody.setAngularVelocity(0);

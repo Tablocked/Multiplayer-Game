@@ -13,16 +13,16 @@ public class JoinState extends GameState
 {
     private long timeDuringLastHostListRequest = 0;
 
-    private final PagedList<Integer> pagedList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
+    private final PagedList<Byte> pagedList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
     {
         @Override
-        protected void onItemButtonActivation(Integer hostIdentifier, TextButton levelButton, int yPosition)
+        protected void onItemButtonActivation(Byte hostIdentifier, TextButton levelButton, int yPosition)
         {
-            CLIENT.send(ClientPacket.JOIN_HOST, DataType.INTEGER.encode(hostIdentifier));
+            CLIENT.send(ClientPacket.JOIN_HOST, DataType.BYTE.encode(hostIdentifier));
         }
 
         @Override
-        protected String getItemButtonName(Integer hostIdentifier, int index)
+        protected String getItemButtonName(Byte hostIdentifier, int index)
         {
             return CLIENT.hostedLevelNames.get(index);
         }

@@ -19,9 +19,8 @@ import java.util.List;
 
 public class Server extends Network
 {
-    final List<ClientIdentifier> clients = new ArrayList<>();
-    final List<HostedLevel> hostedLevels = new ArrayList<>();
-    private byte nextClientIdentifier = 0;
+    final IdentifierList<ClientIdentifier> clients = new IdentifierList<>();
+    final IdentifierList<HostedLevel> hostedLevels = new IdentifierList<>();
     private final LoopCounter tickCounter = new LoopCounter();
 
     public static void main(String[] args)
@@ -42,7 +41,7 @@ public class Server extends Network
     @Override
     void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
     {
-        for(ClientIdentifier clientIdentifier : clients)
+        for(ClientIdentifier clientIdentifier : clients.list)
             if(clientIdentifier.inetAddress.equals(receivedPacket.getAddress()) && clientIdentifier.port == receivedPacket.getPort())
             {
                 respondToPacket(clientIdentifier, data, dataLength);
@@ -50,9 +49,7 @@ public class Server extends Network
                 return;
             }
 
-        clients.add(new ClientIdentifier(nextClientIdentifier, receivedPacket.getAddress(), receivedPacket.getPort()));
-
-        nextClientIdentifier++;
+        clients.add(new ClientIdentifier(receivedPacket.getAddress(), receivedPacket.getPort()));
     }
 
     @Override
@@ -67,9 +64,7 @@ public class Server extends Network
 
         Timeline tickLoop = new Timeline(new KeyFrame(Duration.millis(16.67), (actionEvent) ->
         {
-            List<ClientIdentifier> copyOfClients = new ArrayList<>(clients);
-
-            hostedLevels.removeIf(hostedLevel -> hostedLevel.joinedClients.size() == 0);
+            List<ClientIdentifier> copyOfClients = new ArrayList<>(clients.list);
 
             for(ClientIdentifier clientIdentifier : copyOfClients)
                 if(System.currentTimeMillis() - clientIdentifier.timeDuringLastPacketReceived > 10000)
@@ -105,6 +100,12 @@ public class Server extends Network
                     send(ServerPacket.TICK, clientIdentifier, dataTypes);
                 }
 
+            List<HostedLevel> copyOfHostedLevels = new ArrayList<>(hostedLevels.list);
+
+            for(HostedLevel hostedLevel : copyOfHostedLevels)
+                if(hostedLevel.joinedClients.size() == 0)
+                    hostedLevels.remove(hostedLevel);
+
             tickCounter.increment();
         }));
 
@@ -122,12 +123,12 @@ public class Server extends Network
                 gc.fillText(tickCounter.computeLoopsPerSecond() + " TPS", 10, y);
                 gc.fillText(getBytesSent() / 1024 + " KB Sent", 10, y += 30);
                 gc.fillText(getBytesReceived() / 1024 + " KB Received", 10, y += 30);
-                gc.fillText("Clients (" + clients.size() + ")", 10, y += 60);
-                gc.fillText("Hosted Levels (" + hostedLevels.size() + ")", 10, y += 30);
+                gc.fillText("Clients (" + clients.list.size() + ")", 10, y += 60);
+                gc.fillText("Hosted Levels (" + hostedLevels.list.size() + ")", 10, y += 30);
 
-                for(int i = 0; i < hostedLevels.size(); i++)
+                for(int i = 0; i < hostedLevels.list.size(); i++)
                 {
-                    HostedLevel hostedLevel = hostedLevels.get(i);
+                    HostedLevel hostedLevel = hostedLevels.list.get(i);
 
                     gc.fillText((i + 1) + ") Name: " + hostedLevel.levelName + " | Size: " + hostedLevel.level.length + " bytes | Joined Clients: " + hostedLevel.joinedClients.size() + " | Host Identifier: " + hostedLevel.identifier, 10, y += 30);
                 }

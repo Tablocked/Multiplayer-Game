@@ -13,6 +13,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import tablock.core.Input;
+import tablock.core.Player;
+import tablock.core.TargetedPlayer;
 import tablock.gameState.GameState;
 import tablock.gameState.TitleState;
 
@@ -46,9 +48,9 @@ public class Client extends Network
 	public static final Image DOWN_ARROW_TEXTURE = getTexture("keyboardDownArrow");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 	public Player player = null;
-	public final List<Integer> hostIdentifiers = new ArrayList<>();
+	public final List<Byte> hostIdentifiers = new ArrayList<>();
 	public final List<String> hostedLevelNames = new ArrayList<>();
-	public final HashMap<Byte, Player> playersInHostedLevel = new HashMap<>();
+	public final HashMap<Byte, TargetedPlayer> playersInHostedLevel = new HashMap<>();
 	private GameState gameState = new TitleState();
 	private long timeDuringLastPacketReceived = 0;
 	private long timeDuringLastConnectPacketSent = 0;

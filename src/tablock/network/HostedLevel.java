@@ -3,16 +3,14 @@ package tablock.network;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HostedLevel
+public class HostedLevel extends Identifier
 {
-    final int identifier;
     final byte[] level;
     final String levelName;
     final List<ClientIdentifier> joinedClients = new ArrayList<>();
 
-    public HostedLevel(int identifier, byte[] levelBytes, String levelName, ClientIdentifier clientIdentifier)
+    public HostedLevel(byte[] levelBytes, String levelName, ClientIdentifier clientIdentifier)
     {
-        this.identifier = identifier;
         this.level = levelBytes;
         this.levelName = levelName;
 

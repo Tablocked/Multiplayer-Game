@@ -14,7 +14,7 @@ public abstract class Network extends Application
     static final int PORT = 3925;
     private static final int MAX_PACKET_LENGTH = 1024;
     final DatagramSocket datagramSocket;
-    private byte nextLargePacketIdentifier;
+    private final IdentifierTree largePacketIdentifierTree = new IdentifierTree();
     private int bytesSent;
     private int bytesReceived;
     private boolean running = true;
@@ -74,10 +74,10 @@ public abstract class Network extends Application
     void send(int packetOrdinal, InetAddress inetAddress, int port, byte[][] dataTypes)
     {
         byte[] data = new byte[MAX_PACKET_LENGTH];
+        byte largePacketIdentifier = 0;
         int dataIndex = 2;
         int dataTypeIndex = 0;
         int bytesCopied = 0;
-        boolean largePacket = false;
 
         data[1] = (byte) packetOrdinal;
 
@@ -99,24 +99,23 @@ public abstract class Network extends Application
             }
             else
             {
-                if(nextLargePacketIdentifier == 0)
-                    nextLargePacketIdentifier = 1;
+                if(largePacketIdentifier == 0)
+                    largePacketIdentifier = largePacketIdentifierTree.allocateNextIdentifier();
 
-                largePacket = true;
-                data[0] = nextLargePacketIdentifier;
+                data[0] = largePacketIdentifier;
 
                 send(data, MAX_PACKET_LENGTH, inetAddress, port);
 
                 data = new byte[MAX_PACKET_LENGTH];
-                data[0] = nextLargePacketIdentifier;
+                data[0] = largePacketIdentifier;
                 data[1] = 1;
                 dataIndex = 2;
             }
         }
 
-        if(largePacket)
+        if(largePacketIdentifier != 0)
         {
-            nextLargePacketIdentifier++;
+            largePacketIdentifierTree.remove(largePacketIdentifier);
 
             data[1] = 0;
         }

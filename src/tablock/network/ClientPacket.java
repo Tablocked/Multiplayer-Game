@@ -1,5 +1,7 @@
 package tablock.network;
 
+import tablock.core.Player;
+
 public enum ClientPacket
 {
     TICK
@@ -10,7 +12,7 @@ public enum ClientPacket
             clientIdentifier.timeDuringLastPacketReceived = System.currentTimeMillis();
 
             if(decodedData.length > 0)
-                clientIdentifier.player.decode(decodedData);
+                clientIdentifier.player.update(decodedData);
         }
     },
 
@@ -34,13 +36,13 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            byte[][] dataTypes = new byte[server.hostedLevels.size() * 2][];
+            byte[][] dataTypes = new byte[server.hostedLevels.list.size() * 2][];
 
             for(int i = 0; i < dataTypes.length / 2; i++)
             {
-                HostedLevel hostedLevel = server.hostedLevels.get(i);
+                HostedLevel hostedLevel = server.hostedLevels.list.get(i);
 
-                dataTypes[i * 2] = DataType.INTEGER.encode(hostedLevel.identifier);
+                dataTypes[i * 2] = DataType.BYTE.encode(hostedLevel.identifier);
                 dataTypes[(i * 2) + 1] = DataType.STRING.encode(hostedLevel.levelName);
             }
 
@@ -53,7 +55,7 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            server.hostedLevels.add(new HostedLevel(clientIdentifier.identifier, (byte[]) decodedData[0], (String) decodedData[1], clientIdentifier));
+            server.hostedLevels.add(new HostedLevel((byte[]) decodedData[0], (String) decodedData[1], clientIdentifier));
         }
     },
 
@@ -62,14 +64,12 @@ public enum ClientPacket
         @Override
         void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
         {
-            for(HostedLevel hostedLevel : server.hostedLevels)
-                if(hostedLevel.identifier == (int) decodedData[0])
+            for(HostedLevel hostedLevel : server.hostedLevels.list)
+                if(hostedLevel.identifier == (byte) decodedData[0])
                 {
                     server.send(ServerPacket.JOIN_HOST, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level), DataType.STRING.encode(hostedLevel.levelName));
 
-                    clientIdentifier.player.x = 0;
-                    clientIdentifier.player.y = 0;
-                    clientIdentifier.player.rotationAngle = 0;
+                    clientIdentifier.player = new Player();
 
                     hostedLevel.addClient(clientIdentifier);
                 }

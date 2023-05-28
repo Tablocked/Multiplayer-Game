@@ -1,5 +1,6 @@
 package tablock.network;
 
+import tablock.core.TargetedPlayer;
 import tablock.gameState.PlayState;
 import tablock.level.Level;
 
@@ -27,13 +28,14 @@ public enum ServerPacket
                 for(int i = 0; i < decodedData.length; i += 7)
                 {
                     byte identifier = (byte) decodedData[i];
+                    Object[] playerData = Arrays.copyOfRange(decodedData, i + 1, i + 7);
 
                     identifiers.add(identifier);
 
                     if(client.playersInHostedLevel.containsKey(identifier))
-                        client.playersInHostedLevel.get(identifier).decode(Arrays.copyOfRange(decodedData, i + 1, i + 7));
+                        client.playersInHostedLevel.get(identifier).update(playerData);
                     else
-                        client.playersInHostedLevel.put(identifier, new Player());
+                        client.playersInHostedLevel.put(identifier, new TargetedPlayer(playerData));
                 }
 
                 client.playersInHostedLevel.keySet().removeIf((identifier) -> !identifiers.contains(identifier));
@@ -53,7 +55,7 @@ public enum ServerPacket
 
             for(int i = 0; i < decodedData.length; i += 2)
             {
-                client.hostIdentifiers.add((int) decodedData[i]);
+                client.hostIdentifiers.add((byte) decodedData[i]);
                 client.hostedLevelNames.add((String) decodedData[i + 1]);
             }
         }

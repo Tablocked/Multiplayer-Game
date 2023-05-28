@@ -1,20 +1,20 @@
 package tablock.network;
 
+import tablock.core.Player;
+
 import java.net.InetAddress;
 import java.util.List;
 
-public class ClientIdentifier
+public class ClientIdentifier extends Identifier
 {
     long timeDuringLastPacketReceived = System.currentTimeMillis();
     List<ClientIdentifier> clientsInHostedLevel;
-    final Player player = new Player();
-    final byte identifier;
+    Player player = new Player();
     final InetAddress inetAddress;
     final int port;
 
-    public ClientIdentifier(byte identifier, InetAddress inetAddress, int port)
+    public ClientIdentifier(InetAddress inetAddress, int port)
     {
-        this.identifier = identifier;
         this.inetAddress = inetAddress;
         this.port = port;
     }

@@ -8,11 +8,11 @@ import org.dyn4j.geometry.*;
 import org.dyn4j.geometry.decompose.SweepLine;
 import tablock.core.Input;
 import tablock.core.Simulation;
+import tablock.core.TargetedPlayer;
 import tablock.core.VectorMath;
 import tablock.level.Level;
 import tablock.level.Platform;
 import tablock.network.ClientPacket;
-import tablock.network.Player;
 import tablock.userInterface.AttentionMessage;
 import tablock.userInterface.ButtonStrip;
 import tablock.userInterface.TextButton;
@@ -97,41 +97,41 @@ public class PlayState extends GameState
         CLIENT.switchGameState(new TitleState());
     }
 
-    private Vector2[] mapVerticesOntoPlayer(Player player, Vector2[] vertices)
+    private Vector2[] mapVerticesOntoPlayer(double x, double y, double rotationAngle, byte animationDirection, Vector2[] vertices)
     {
         Vector2[] mappedVertices = new Vector2[vertices.length];
-        double angle = player.rotationAngle + (player.animationDirection * (Math.PI / 2));
+        double angle = rotationAngle + (animationDirection * (Math.PI / 2));
 
         for(int i = 0; i < vertices.length; i++)
-            mappedVertices[i] = vertices[i].copy().rotate(angle).add(player.x, player.y);
+            mappedVertices[i] = vertices[i].copy().rotate(angle).add(x, y);
 
         return mappedVertices;
     }
 
-    private void drawPlayer(Player player, double offsetX, double offsetY, GraphicsContext gc)
+    private void drawPlayer(double x, double y, double rotationAngle, byte animationType, byte animationDirection, byte jumpProgress, double offsetX, double offsetY, GraphicsContext gc)
     {
         Vector2[] playerVertices = null;
 
-        switch(Simulation.PlayerAnimationType.values()[player.animationType])
+        switch(Simulation.PlayerAnimationType.values()[animationType])
         {
-            case NONE -> playerVertices = mapVerticesOntoPlayer(player, idlePlayerVertices);
+            case NONE -> playerVertices = mapVerticesOntoPlayer(x, y, rotationAngle, animationDirection, idlePlayerVertices);
 
             case STRAIGHT_JUMP ->
             {
-                double length = VectorMath.computeLinearEquation(-128, 25, 127, -10, player.jumpProgress);
+                double length = VectorMath.computeLinearEquation(-128, 25, 127, -10, jumpProgress);
 
-                playerVertices = mapVerticesOntoPlayer(player, new Vector2[]{new Vector2(-25, 25), new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, 25)});
+                playerVertices = mapVerticesOntoPlayer(x, y, rotationAngle, animationDirection, new Vector2[]{new Vector2(-25, 25), new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, 25)});
             }
 
             case DIAGONAL_JUMP ->
             {
-                double length = VectorMath.computeLinearEquation(-128, 25, 127, 0, player.jumpProgress);
+                double length = VectorMath.computeLinearEquation(-128, 25, 127, 0, jumpProgress);
 
-                playerVertices = mapVerticesOntoPlayer(player, new Vector2[]{new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, length), new Vector2(-25, length)});
+                playerVertices = mapVerticesOntoPlayer(x, y, rotationAngle, animationDirection, new Vector2[]{new Vector2(-25, -25), new Vector2(length, -25), new Vector2(length, length), new Vector2(-25, length)});
             }
 
-            case STRAIGHT_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(player, straightDoubleJumpVertices);
-            case DIAGONAL_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(player, diagonalDoubleJumpVertices);
+            case STRAIGHT_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(x, y, rotationAngle, animationDirection, straightDoubleJumpVertices);
+            case DIAGONAL_DOUBLE_JUMP -> playerVertices = mapVerticesOntoPlayer(x, y, rotationAngle, animationDirection, diagonalDoubleJumpVertices);
         }
 
         if(playerVertices != null)
@@ -193,18 +193,20 @@ public class PlayState extends GameState
         double offsetX = -simulation.player.x + 960;
         double offsetY = simulation.player.y + 540;
 
-        for(Player onlinePlayer : CLIENT.playersInHostedLevel.values())
+        for(TargetedPlayer targetedPlayer : CLIENT.playersInHostedLevel.values())
         {
-            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(onlinePlayer.x - simulation.player.x, 2) + Math.pow(onlinePlayer.y - simulation.player.y, 2))) + 0.2, 1);
+            targetedPlayer.pursueTargetValues();
+
+            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(targetedPlayer.x.get() - simulation.player.x, 2) + Math.pow(targetedPlayer.y.get() - simulation.player.y, 2))) + 0.2, 1);
 
             gc.setFill(Color.rgb(255, 0, 0, opacity));
 
-            drawPlayer(onlinePlayer, offsetX, offsetY, gc);
+            drawPlayer(targetedPlayer.x.get(), targetedPlayer.y.get(), targetedPlayer.rotationAngle.get(), targetedPlayer.getAnimationType(), targetedPlayer.getAnimationDirection(), targetedPlayer.getJumpProgress(), offsetX, offsetY, gc);
         }
 
         gc.setFill(Color.RED);
 
-        drawPlayer(simulation.player, offsetX, offsetY, gc);
+        drawPlayer(simulation.player.x, simulation.player.y, simulation.player.rotationAngle, simulation.player.animationType, simulation.player.animationDirection, simulation.player.jumpProgress, offsetX, offsetY, gc);
 
         renderLevel(offsetX, offsetY, gc);
 

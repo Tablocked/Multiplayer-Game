@@ -1,4 +1,6 @@
-package tablock.network;
+package tablock.core;
+
+import tablock.network.DataType;
 
 public class Player
 {
@@ -9,18 +11,18 @@ public class Player
     public byte animationDirection;
     public byte jumpProgress;
 
-    byte[][] encode()
+    public byte[][] encode()
     {
         return new byte[][]{DataType.DOUBLE.encode(x), DataType.DOUBLE.encode(y), DataType.DOUBLE.encode(rotationAngle), DataType.BYTE.encode(animationType), DataType.BYTE.encode(animationDirection), DataType.BYTE.encode(jumpProgress)};
     }
 
-    void decode(Object[] decodedData)
+    public void update(Object[] playerData)
     {
-        x = (double) decodedData[0];
-        y = (double) decodedData[1];
-        rotationAngle = (double) decodedData[2];
-        animationType = (byte) decodedData[3];
-        animationDirection = (byte) decodedData[4];
-        jumpProgress = (byte) decodedData[5];
+        x = (double) playerData[0];
+        y = (double) playerData[1];
+        rotationAngle = (double) playerData[2];
+        animationType = (byte) playerData[3];
+        animationDirection = (byte) playerData[4];
+        jumpProgress = (byte) playerData[5];
     }
 }
