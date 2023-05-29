@@ -1,0 +1,18 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Multiplayer-Game:jar">
+    <output-path>$USER_HOME$/Downloads</output-path>
+    <root id="archive" name="Multiplayer-Game.jar">
+      <element id="module-output" name="Multiplayer-Game" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx-swt.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.web.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.base.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.fxml.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.media.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.swing.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.controls.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/javafx-sdk-18.0.2/lib/javafx.graphics.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/dyn4j/dyn4j/4.2.1/dyn4j-4.2.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/JavaLibraries/Jamepad/library/Jamepad.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
