@@ -4,6 +4,7 @@ import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import tablock.core.Texture;
 import tablock.network.Client;
 
 public class AttentionMessage
@@ -58,8 +59,8 @@ public class AttentionMessage
             Client.fillText("ATTENTION", 960, 490, attentionShape, gc);
 
             gc.fillText(message, 960 - (messageShape.getWidth() / 2), 545);
-            gc.drawImage(Client.WARNING_TEXTURE, 1010 - attentionShape.getWidth(), 430);
-            gc.drawImage(Client.WARNING_TEXTURE, 858 + attentionShape.getWidth(), 430);
+            gc.drawImage(Texture.WARNING_TEXTURE, 1010 - attentionShape.getWidth(), 430);
+            gc.drawImage(Texture.WARNING_TEXTURE, 858 + attentionShape.getWidth(), 430);
 
             buttonStrip.render(gc);
         }

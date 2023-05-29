@@ -88,7 +88,7 @@ public class Server extends Network
 
         gc.setFont(Font.font("Arial", 20));
 
-        Timeline tickLoop = new Timeline(new KeyFrame(Duration.millis(16.67), (actionEvent) ->
+        Timeline tickLoop = new Timeline(new KeyFrame(Duration.millis(50), (actionEvent) ->
         {
             List<ClientIdentifier> copyOfClients = new ArrayList<>(clients.list);
 

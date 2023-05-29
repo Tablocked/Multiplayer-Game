@@ -32,14 +32,15 @@ public enum ServerPacket
                 for(int i = 0; i < decodedData.length; i += 8)
                 {
                     byte identifier = (byte) decodedData[i];
+                    TargetedPlayer targetedPlayer = client.playersInHostedLevel.get(identifier);
                     Object[] playerData = Arrays.copyOfRange(decodedData, i + 1, i + 8);
 
-                    identifiers.add(identifier);
-
-                    if(client.playersInHostedLevel.containsKey(identifier))
-                        client.playersInHostedLevel.get(identifier).update(playerData);
-                    else
+                    if(targetedPlayer == null)
                         client.playersInHostedLevel.put(identifier, new TargetedPlayer(playerData));
+                    else
+                        targetedPlayer.update(playerData);
+
+                    identifiers.add(identifier);
                 }
 
                 client.playersInHostedLevel.keySet().removeIf((identifier) -> !identifiers.contains(identifier));
@@ -82,10 +83,10 @@ public enum ServerPacket
         {
             for(int i = 0; i < decodedData.length; i += 2)
             {
-                byte identifier = (byte) decodedData[i];
+                TargetedPlayer targetedPlayer = client.playersInHostedLevel.get((byte) decodedData[i]);
 
-                if(client.playersInHostedLevel.containsKey(identifier))
-                    client.playersInHostedLevel.get(identifier).name = (String) decodedData[i + 1];
+                if(targetedPlayer != null)
+                    targetedPlayer.name = (String) decodedData[i + 1];
             }
         }
     };

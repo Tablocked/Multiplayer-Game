@@ -10,7 +10,7 @@ public class TargetedValue
     void pursueTargetValue()
     {
         if(currentValue != targetValue)
-            currentValue = VectorMath.computeLinearEquation(timeDuringTargetValueSet, valueDuringTargetValueSet, timeDuringTargetValueSet + 50, targetValue, System.currentTimeMillis());
+            currentValue = VectorMath.computeLinearEquation(timeDuringTargetValueSet, valueDuringTargetValueSet, timeDuringTargetValueSet + 80, targetValue, System.currentTimeMillis());
     }
 
     void resetValues()
