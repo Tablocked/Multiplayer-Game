@@ -233,9 +233,10 @@ public class Simulation extends World<Body>
 		player.x = 0;
 		player.y = 0;
 		player.rotationAngle = 0;
+		player.jumpProgress = 0;
 		player.animationType = 0;
 		player.animationDirection = 0;
-		player.jumpProgress = 0;
+		player.reset = true;
 
 		playerBody.translateToOrigin();
 		playerBody.setLinearVelocity(0, 0);

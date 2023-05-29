@@ -3,6 +3,7 @@ package tablock.gameState;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.geometry.*;
 import org.dyn4j.geometry.decompose.SweepLine;
@@ -12,6 +13,7 @@ import tablock.core.TargetedPlayer;
 import tablock.core.VectorMath;
 import tablock.level.Level;
 import tablock.level.Platform;
+import tablock.network.Client;
 import tablock.network.ClientPacket;
 import tablock.userInterface.AttentionMessage;
 import tablock.userInterface.ButtonStrip;
@@ -108,7 +110,7 @@ public class PlayState extends GameState
         return mappedVertices;
     }
 
-    private void drawPlayer(double x, double y, double rotationAngle, byte animationType, byte animationDirection, byte jumpProgress, double offsetX, double offsetY, GraphicsContext gc)
+    private void drawPlayer(double x, double y, double rotationAngle, double jumpProgress, byte animationDirection, byte animationType, double offsetX, double offsetY, GraphicsContext gc)
     {
         Vector2[] playerVertices = null;
 
@@ -201,14 +203,29 @@ public class PlayState extends GameState
 
             gc.setFill(Color.rgb(255, 0, 0, opacity));
 
-            drawPlayer(targetedPlayer.x.get(), targetedPlayer.y.get(), targetedPlayer.rotationAngle.get(), targetedPlayer.getAnimationType(), targetedPlayer.getAnimationDirection(), targetedPlayer.getJumpProgress(), offsetX, offsetY, gc);
+            drawPlayer(targetedPlayer.x.get(), targetedPlayer.y.get(), targetedPlayer.rotationAngle.get(), targetedPlayer.jumpProgress.get(), targetedPlayer.getAnimationDirection(), targetedPlayer.getAnimationType(), offsetX, offsetY, gc);
+
+            gc.setFont(Font.font("Arial", 20));
+
+            Client.fillText(targetedPlayer.getName(), targetedPlayer.x.get() + offsetX, -targetedPlayer.y.get() + offsetY - 40, gc);
         }
 
         gc.setFill(Color.RED);
 
-        drawPlayer(simulation.player.x, simulation.player.y, simulation.player.rotationAngle, simulation.player.animationType, simulation.player.animationDirection, simulation.player.jumpProgress, offsetX, offsetY, gc);
+        drawPlayer(simulation.player.x, simulation.player.y, simulation.player.rotationAngle, simulation.player.jumpProgress, simulation.player.animationDirection, simulation.player.animationType, offsetX, offsetY, gc);
 
         renderLevel(offsetX, offsetY, gc);
+
+        gc.setFont(Font.font("Arial", 20));
+
+        for(TargetedPlayer targetedPlayer : CLIENT.playersInHostedLevel.values())
+        {
+            double opacity = Math.min((0.004 * Math.sqrt(Math.pow(targetedPlayer.x.get() - simulation.player.x, 2) + Math.pow(targetedPlayer.y.get() - simulation.player.y, 2))) + 0.2, 1);
+
+            gc.setFill(Color.rgb(255, 0, 0, opacity));
+
+            Client.fillText(targetedPlayer.getName(), targetedPlayer.x.get() + offsetX, -targetedPlayer.y.get() + offsetY - 40, gc);
+        }
 
         if(paused)
         {

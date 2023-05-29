@@ -19,6 +19,21 @@ public enum DataType
         }
     },
 
+    BOOLEAN
+    {
+        @Override
+        byte[] toByteArray(Object data)
+        {
+            return (boolean) data ? new byte[]{1} : new byte[]{0};
+        }
+
+        @Override
+        Object decode(byte[] data)
+        {
+            return data[0] == 1;
+        }
+    },
+
     INTEGER
     {
         @Override

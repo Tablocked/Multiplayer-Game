@@ -1,12 +1,11 @@
 package tablock.gameState;
 
-import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import tablock.core.FilePointer;
 import tablock.core.Input;
+import tablock.core.TextFieldHandler;
 import tablock.level.Level;
 import tablock.network.Client;
 import tablock.network.ClientPacket;
@@ -27,9 +26,9 @@ public class LevelSelectState extends GameState
 {
     private ButtonStrip optionButtonStrip;
     private ButtonStrip confirmButtonStrip;
-    private TextButton levelButtonDuringLevelRename;
-    private String levelNameDuringRenameStart;
     private TextButton hostButton;
+    private boolean renamingInProgress;
+    private TextFieldHandler textFieldHandler;
     private final List<File> levelFiles = new ArrayList<>();
 
     private final PagedList<File> pagedList = new PagedList<>(levelFiles, "Select Level", CLIENT)
@@ -190,51 +189,34 @@ public class LevelSelectState extends GameState
         optionButtonStrip.setFrozen(true);
         optionButtonStrip.setHidden(true);
 
-        levelButtonDuringLevelRename = levelButton;
-        levelNameDuringRenameStart = levelButton.getText();
-
-        Input.setOnKeyTypedHandler(keyEvent -> onKeyTyped(keyEvent, levelPointer));
-    }
-
-    private void onKeyTyped(KeyEvent keyEvent, FilePointer levelPointer)
-    {
-        String text = levelButtonDuringLevelRename.getText();
-        String character = keyEvent.getCharacter();
-        int asciiCode = character.charAt(0);
-
-        if(character.equals(".") || character.equals("/") || character.equals("\\"))
-            return;
-        else if(character.equals("\b"))
+        renamingInProgress = true;
+        
+        textFieldHandler = new TextFieldHandler(levelButton.getText(), levelButton.getX() - 760, levelButton.getY())
         {
-            if(text.length() == 0)
-                text = "";
-            else
-                text = text.substring(0, text.length() - 1);
-        }
-        else if(character.equals("\r"))
-        {
-            String newPath = levelPointer.getFile().toPath().getParent().toString() + "/" + levelButtonDuringLevelRename.getText();
+            @Override
+            public void onConfirmation(String text)
+            {
+                String newPath = levelPointer.getFile().toPath().getParent().toString() + "/" + levelButton.getText();
 
-            if(!levelPointer.changeFilePath(newPath))
-                levelButtonDuringLevelRename.setText(levelNameDuringRenameStart);
+                if(!levelPointer.changeFilePath(newPath))
+                    levelButton.setText(text);
 
-            stopRenaming();
+                stopRenaming();
+            }
 
-            return;
-        }
-        else if(asciiCode >= 32 && asciiCode <= 126)
-            text += character;
+            @Override
+            public void onKeyTyped(String text, boolean cancelling)
+            {
+                super.onKeyTyped(text, cancelling);
 
-        Font font = Font.font("Arial", 80);
-        Bounds textShape = Client.computeTextShape(text, font);
+                levelButton.setText(text);
 
-        while(textShape.getWidth() > 800)
-        {
-            text = text.substring(0, text.length() - 1);
-            textShape = Client.computeTextShape(text, font);
-        }
+                if(cancelling)
+                    stopRenaming();
+            }
+        };
 
-        levelButtonDuringLevelRename.setText(text);
+        Input.setTextFieldHandler(textFieldHandler);
     }
 
     private void deselectNewButton()
@@ -247,13 +229,10 @@ public class LevelSelectState extends GameState
 
     private void stopRenaming()
     {
-        Input.setOnKeyTypedHandler(null);
-
         optionButtonStrip.setFrozen(false);
         optionButtonStrip.setHidden(false);
-
-        levelButtonDuringLevelRename = null;
-        levelNameDuringRenameStart = null;
+        
+        textFieldHandler = null;
     }
 
     @Override
@@ -286,29 +265,25 @@ public class LevelSelectState extends GameState
         }
         else
         {
-            if(Input.BACK.wasJustActivated() && confirmButtonStrip == null)
+            if(Input.BACK.wasJustActivated() && confirmButtonStrip == null && !renamingInProgress)
             {
-                if(levelButtonDuringLevelRename != null)
-                {
-                    levelButtonDuringLevelRename.setText(levelNameDuringRenameStart);
+                optionButtonStrip = null;
+                hostButton = null;
 
-                    stopRenaming();
-                }
-                else
-                {
-                    optionButtonStrip = null;
-                    hostButton = null;
-
-                    pagedList.getItemButtonStrip().setFrozen(false);
-                }
+                pagedList.getItemButtonStrip().setFrozen(false);
             }
             else
                 Objects.requireNonNullElseGet(confirmButtonStrip, () -> optionButtonStrip).render(gc);
 
-            String text = confirmButtonStrip != null || levelButtonDuringLevelRename != null ? "Cancel" : "Back";
+            String text = confirmButtonStrip != null || renamingInProgress ? "Cancel" : "Back";
 
             pagedList.getInputIndicator().add(text, Input.BACK);
         }
+
+        renamingInProgress = Input.isTextFieldActive();
+
+        if(textFieldHandler != null)
+            textFieldHandler.renderTypingCursor(false, gc);
 
         newButton.detectIfHoveredAndRender(gc);
 

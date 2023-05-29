@@ -48,29 +48,29 @@ public abstract class PagedList<T>
         page = Math.max(page, 1);
         page = Math.min(page, maxPage);
 
-        int levelsOnPage = list.size() - (page * 5) < 0 ? (list.size() % 5) : 5;
-        int buttonCount = newButton == null ? levelsOnPage : levelsOnPage + 1;
+        int itemsOnPage = list.size() - (page * 5) < 0 ? (list.size() % 5) : 5;
+        int buttonCount = newButton == null ? itemsOnPage : itemsOnPage + 1;
 
-        Button[] levelButtons = new Button[buttonCount];
+        Button[] itemButtons = new Button[buttonCount];
 
         if(newButton != null)
-            levelButtons[levelsOnPage] = newButton;
+            itemButtons[itemsOnPage] = newButton;
 
-        for(int i = 0; i < levelsOnPage; i++)
+        for(int i = 0; i < itemsOnPage; i++)
         {
             int index = ((page - 1) * 5) + i;
             int yPosition = 200 + (i * 120);
             T item = list.get(index);
 
-            TextButton levelButton = new TextButton(960, yPosition, null, 80, Color.WHITE, false, null);
+            TextButton itemButton = new TextButton(960, yPosition, null, 80, Color.WHITE, false, null);
 
-            levelButton.setActivationHandler(() -> onItemButtonActivation(item, levelButton, yPosition));
-            levelButton.setWidth(1520);
-            levelButton.setSelectedColor(Color.rgb(0, 80, 0));
-            levelButton.setDeselectedColor(Color.rgb(80, 0 , 0));
-            levelButton.setText(getItemButtonName(item, index));
+            itemButton.setActivationHandler(() -> onItemButtonActivation(item, itemButton, yPosition));
+            itemButton.setWidth(1520);
+            itemButton.setSelectedColor(Color.rgb(0, 80, 0));
+            itemButton.setDeselectedColor(Color.rgb(80, 0 , 0));
+            itemButton.setText(getItemButtonName(item, index));
 
-            levelButtons[i] = levelButton;
+            itemButtons[i] = itemButton;
         }
 
         int index = 0;
@@ -78,16 +78,16 @@ public abstract class PagedList<T>
 
         if(itemButtonStrip != null)
         {
-            index = itemButtonStrip.getIndex() == itemButtonStrip.getMaximumIndex() ? levelsOnPage : itemButtonStrip.getIndex();
+            index = itemButtonStrip.getIndex() == itemButtonStrip.getMaximumIndex() ? itemsOnPage : itemButtonStrip.getIndex();
 
             for(int i = 0; i < itemButtonStrip.buttons.length; i++)
                 if(itemButtonStrip.buttons[i].beingClicked)
                     buttonBeingClickedIndex = i;
         }
 
-        itemButtonStrip = new ButtonStrip(ButtonStrip.Orientation.VERTICAL, levelButtons);
+        itemButtonStrip = new ButtonStrip(ButtonStrip.Orientation.VERTICAL, itemButtons);
 
-        itemButtonStrip.setIndex(index > itemButtonStrip.getMaximumIndex() ? levelsOnPage - 1 : index);
+        itemButtonStrip.setIndex(index > itemButtonStrip.getMaximumIndex() ? itemsOnPage - 1 : index);
 
         if(Input.MOUSE_LEFT.isActive() && buttonBeingClickedIndex != -1)
             itemButtonStrip.forceButtonToBeClicked(buttonBeingClickedIndex);

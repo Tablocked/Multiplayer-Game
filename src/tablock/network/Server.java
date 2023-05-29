@@ -38,6 +38,32 @@ public class Server extends Network
         ClientPacket.values()[data[1]].respondToClientPacket(decodePacket(data, dataLength), clientIdentifier, this);
     }
 
+    byte[][] encodeClientsInHostedLevel(ClientIdentifier clientIdentifier)
+    {
+        byte[][] dataTypes = new byte[0][];
+
+        if(clientIdentifier.clientsInHostedLevel != null)
+        {
+            ArrayList<ClientIdentifier> clientsInHostedLevel = new ArrayList<>(clientIdentifier.clientsInHostedLevel);
+
+            clientsInHostedLevel.remove(clientIdentifier);
+
+            dataTypes = new byte[clientsInHostedLevel.size() * 8][];
+
+            for(int i = 0; i < clientsInHostedLevel.size(); i++)
+            {
+                ClientIdentifier clientInHostedLevel = clientsInHostedLevel.get(i);
+                int index = i * 8;
+
+                dataTypes[index] = DataType.BYTE.encode(clientInHostedLevel.identifier);
+
+                System.arraycopy(clientInHostedLevel.player.encode(), 0, dataTypes, index + 1, 7);
+            }
+        }
+
+        return dataTypes;
+    }
+
     @Override
     void respondToPacket(DatagramPacket receivedPacket, byte[] data, int dataLength)
     {
@@ -75,30 +101,7 @@ public class Server extends Network
                     clients.remove(clientIdentifier);
                 }
                 else
-                {
-                    byte[][] dataTypes = new byte[0][];
-
-                    if(clientIdentifier.clientsInHostedLevel != null)
-                    {
-                        ArrayList<ClientIdentifier> clientsInHostedLevel = new ArrayList<>(clientIdentifier.clientsInHostedLevel);
-
-                        clientsInHostedLevel.remove(clientIdentifier);
-
-                        dataTypes = new byte[clientsInHostedLevel.size() * 7][];
-
-                        for(int i = 0; i < clientsInHostedLevel.size(); i++)
-                        {
-                            ClientIdentifier clientInHostedLevel = clientsInHostedLevel.get(i);
-                            int index = i * 7;
-
-                            dataTypes[index] = DataType.BYTE.encode(clientInHostedLevel.identifier);
-
-                            System.arraycopy(clientInHostedLevel.player.encode(), 0, dataTypes, index + 1, 6);
-                        }
-                    }
-
-                    send(ServerPacket.TICK, clientIdentifier, dataTypes);
-                }
+                    send(ServerPacket.TICK, clientIdentifier, encodeClientsInHostedLevel(clientIdentifier));
 
             List<HostedLevel> copyOfHostedLevels = new ArrayList<>(hostedLevels.list);
 

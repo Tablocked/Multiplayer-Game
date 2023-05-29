@@ -10,6 +10,7 @@ public class ClientIdentifier extends Identifier
     long timeDuringLastPacketReceived = System.currentTimeMillis();
     List<ClientIdentifier> clientsInHostedLevel;
     Player player = new Player();
+    String name = "Player";
     final InetAddress inetAddress;
     final int port;
 

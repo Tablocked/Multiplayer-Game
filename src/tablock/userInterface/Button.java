@@ -51,7 +51,7 @@ public abstract class Button
             Rectangle rectangle = new Rectangle(x - (width / 2), y - (height / 2), width, height);
             Shape shape = circular ? new Circle(x, y, diagonal / 2) : rectangle;
 
-            if(!frozen && Input.isUsingMouseControls())
+            if(!frozen && Input.isUsingMouseControls() && !preventActivation)
             {
                 if(shape.contains(Input.getMousePosition()))
                 {
@@ -224,6 +224,7 @@ public abstract class Button
         this.disabled = disabled;
     }
 
+    @FunctionalInterface
     public interface ActivationHandler
     {
         void onActivation();

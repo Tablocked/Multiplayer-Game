@@ -48,6 +48,7 @@ public class Client extends Network
 	public static final Image DOWN_ARROW_TEXTURE = getTexture("keyboardDownArrow");
 	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 	public Player player = null;
+	public String name = "Player";
 	public final List<Byte> hostIdentifiers = new ArrayList<>();
 	public final List<String> hostedLevelNames = new ArrayList<>();
 	public final HashMap<Byte, TargetedPlayer> playersInHostedLevel = new HashMap<>();

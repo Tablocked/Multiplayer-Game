@@ -5,15 +5,20 @@ public class TargetedValue
     private double targetValue;
     private double currentValue;
     private long timeDuringTargetValueSet;
+    private double valueDuringTargetValueSet;
 
     void pursueTargetValue()
     {
         if(currentValue != targetValue)
-        {
-            double value = VectorMath.computeLinearEquation(timeDuringTargetValueSet, currentValue, timeDuringTargetValueSet + 100, targetValue, System.currentTimeMillis());
+            currentValue = VectorMath.computeLinearEquation(timeDuringTargetValueSet, valueDuringTargetValueSet, timeDuringTargetValueSet + 50, targetValue, System.currentTimeMillis());
+    }
 
-            currentValue = currentValue < targetValue ? Math.min(value, targetValue) : Math.max(value, targetValue);
-        }
+    void resetValues()
+    {
+        setTargetValue(0);
+        setCurrentValue(0);
+
+        valueDuringTargetValueSet = 0;
     }
 
     void setTargetValue(double targetValue)
@@ -21,6 +26,7 @@ public class TargetedValue
         this.targetValue = targetValue;
 
         timeDuringTargetValueSet = System.currentTimeMillis();
+        valueDuringTargetValueSet = currentValue;
     }
 
     void setCurrentValue(double currentValue)

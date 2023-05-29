@@ -17,7 +17,11 @@ public enum ServerPacket
             byte[][] dataTypes = new byte[0][];
 
             if(client.player != null)
+            {
                 dataTypes = client.player.encode();
+
+                client.player.reset = false;
+            }
 
             client.send(ClientPacket.TICK, dataTypes);
 
@@ -25,10 +29,10 @@ public enum ServerPacket
             {
                 ArrayList<Byte> identifiers = new ArrayList<>();
 
-                for(int i = 0; i < decodedData.length; i += 7)
+                for(int i = 0; i < decodedData.length; i += 8)
                 {
                     byte identifier = (byte) decodedData[i];
-                    Object[] playerData = Arrays.copyOfRange(decodedData, i + 1, i + 7);
+                    Object[] playerData = Arrays.copyOfRange(decodedData, i + 1, i + 8);
 
                     identifiers.add(identifier);
 
@@ -40,7 +44,8 @@ public enum ServerPacket
 
                 client.playersInHostedLevel.keySet().removeIf((identifier) -> !identifiers.contains(identifier));
             }
-            else
+
+            if(client.player == null || decodedData.length == 0)
                 client.playersInHostedLevel.clear();
         }
     },
@@ -67,6 +72,21 @@ public enum ServerPacket
         void respondToServerPacket(Object[] decodedData, Client client)
         {
             client.switchGameState(new PlayState((Level) Client.deserializeObject((byte[]) decodedData[0])));
+        }
+    },
+
+    PLAYER_NAMES
+    {
+        @Override
+        void respondToServerPacket(Object[] decodedData, Client client)
+        {
+            for(int i = 0; i < decodedData.length; i += 2)
+            {
+                byte identifier = (byte) decodedData[i];
+
+                if(client.playersInHostedLevel.containsKey(identifier))
+                    client.playersInHostedLevel.get(identifier).name = (String) decodedData[i + 1];
+            }
         }
     };
 

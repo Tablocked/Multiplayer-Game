@@ -31,6 +31,15 @@ public enum ClientPacket
         }
     },
 
+    NAME_CHANGE
+    {
+        @Override
+        void respondToClientPacket(Object[] decodedData, ClientIdentifier clientIdentifier, Server server)
+        {
+            clientIdentifier.name = (String) decodedData[0];
+        }
+    },
+
     HOST_LIST
     {
         @Override
@@ -67,11 +76,38 @@ public enum ClientPacket
             for(HostedLevel hostedLevel : server.hostedLevels.list)
                 if(hostedLevel.identifier == (byte) decodedData[0])
                 {
-                    server.send(ServerPacket.JOIN_HOST, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level), DataType.STRING.encode(hostedLevel.levelName));
+                    byte[][] playerNames = new byte[hostedLevel.joinedClients.size() * 2][];
+                    byte[] encodedIdentifier = DataType.BYTE.encode(clientIdentifier.identifier);
+                    byte[][] encodedPlayer = new byte[8][];
+
+                    encodedPlayer[0] = encodedIdentifier;
 
                     clientIdentifier.player = new Player();
 
+                    System.arraycopy(clientIdentifier.player.encode(), 0, encodedPlayer, 1, 7);
+
+                    for(ClientIdentifier joinedClient : hostedLevel.joinedClients)
+                    {
+                        server.send(ServerPacket.TICK, joinedClient, encodedPlayer);
+                        server.send(ServerPacket.PLAYER_NAMES, joinedClient, encodedIdentifier, DataType.STRING.encode(clientIdentifier.name));
+                    }
+
+                    for(int i = 0; i < playerNames.length; i += 2)
+                    {
+                        ClientIdentifier joinedClient = hostedLevel.joinedClients.get(i / 2);
+
+                        playerNames[i] = DataType.BYTE.encode(joinedClient.identifier);
+                        playerNames[i + 1] = DataType.STRING.encode(joinedClient.name);
+                    }
+
+                    server.send(ServerPacket.JOIN_HOST, clientIdentifier, DataType.BYTE_ARRAY.encode(hostedLevel.level));
+
                     hostedLevel.addClient(clientIdentifier);
+
+                    server.send(ServerPacket.TICK, clientIdentifier, server.encodeClientsInHostedLevel(clientIdentifier));
+                    server.send(ServerPacket.PLAYER_NAMES, clientIdentifier, playerNames);
+
+                    break;
                 }
         }
     },

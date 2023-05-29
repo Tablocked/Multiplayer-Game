@@ -9,11 +9,14 @@ import tablock.network.DataType;
 import tablock.userInterface.PagedList;
 import tablock.userInterface.TextButton;
 
+import java.util.ArrayList;
+
 public class JoinState extends GameState
 {
     private long timeDuringLastHostListRequest = 0;
+    private ArrayList<String> previousHostedLevelNames;
 
-    private final PagedList<Byte> pagedList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
+    private final PagedList<Byte> hostList = new PagedList<>(CLIENT.hostIdentifiers, "Select Host", CLIENT)
     {
         @Override
         protected void onItemButtonActivation(Byte hostIdentifier, TextButton levelButton, int yPosition)
@@ -30,6 +33,8 @@ public class JoinState extends GameState
 
     public JoinState()
     {
+        hostList.createButtons();
+
         CLIENT.hostedLevelNames.clear();
         CLIENT.hostIdentifiers.clear();
     }
@@ -37,21 +42,26 @@ public class JoinState extends GameState
     @Override
     public void renderNextFrame(GraphicsContext gc)
     {
-        if(System.currentTimeMillis() - timeDuringLastHostListRequest > 1000)
+        double timeElapsedSinceLastHostListRequest = System.currentTimeMillis() - timeDuringLastHostListRequest;
+
+        if(CLIENT.isConnected())
         {
-            if(CLIENT.isConnected())
+            if(timeElapsedSinceLastHostListRequest > 1000)
             {
                 timeDuringLastHostListRequest = System.currentTimeMillis();
 
                 CLIENT.send(ClientPacket.HOST_LIST);
             }
 
-            pagedList.createButtons();
+            if(!CLIENT.hostedLevelNames.equals(previousHostedLevelNames))
+                hostList.createButtons();
+
+            previousHostedLevelNames = new ArrayList<>(CLIENT.hostedLevelNames);
         }
 
-        pagedList.renderBackgroundAndItemButtonStrip(gc);
-        pagedList.renderArrowButtons(gc);
-        pagedList.getInputIndicator().render(gc);
+        hostList.renderBackgroundAndItemButtonStrip(gc);
+        hostList.renderArrowButtons(gc);
+        hostList.getInputIndicator().render(gc);
 
         if(!CLIENT.isConnected())
         {

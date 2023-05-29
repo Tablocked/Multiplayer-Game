@@ -3,14 +3,15 @@ package tablock.core;
 import com.studiohartman.jamepad.ControllerManager;
 import com.studiohartman.jamepad.ControllerState;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.text.Font;
 import javafx.stage.Screen;
 import tablock.network.Client;
 
@@ -46,10 +47,11 @@ public enum Input
     private static boolean forceMouseHidden = false;
     private static boolean forceMouseVisible = false;
     private static boolean shiftPressed = false;
+    private static TextFieldHandler textFieldHandler;
+    private static Scene scene;
     private static final double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
     private static final List<KeyCode> keysPressed = new ArrayList<>();
     private static final List<MouseButton> mouseButtonsPressed = new ArrayList<>();
-    private static Scene scene;
     private double value;
     private boolean activePreviousFrame = false;
     private Image nintendoImage;
@@ -117,6 +119,47 @@ public enum Input
             shiftPressed = keyEvent.isShiftDown();
         });
 
+        scene.setOnKeyTyped(keyEvent ->
+        {
+            if(textFieldHandler != null)
+            {
+                String character = keyEvent.getCharacter();
+                int asciiCode = character.charAt(0);
+
+                if(character.equals(".") || character.equals("/") || character.equals("\\"))
+                    return;
+                else if(character.equals("\b"))
+                {
+                    if(textFieldHandler.text.length() == 0)
+                        textFieldHandler.text = "";
+                    else
+                        textFieldHandler.text = textFieldHandler.text.substring(0, textFieldHandler.text.length() - 1);
+                }
+                else if(character.equals("\r"))
+                {
+                    textFieldHandler.onConfirmation(textFieldHandler.text);
+
+                    textFieldHandler = null;
+
+                    return;
+                }
+                else if(asciiCode >= 32 && asciiCode <= 126)
+                    textFieldHandler.text += character;
+
+                Font font = Font.font("Arial", 80);
+                Bounds textShape = Client.computeTextShape(textFieldHandler.text, font);
+
+                while(textShape.getWidth() > 800)
+                {
+                    textFieldHandler.text = textFieldHandler.text.substring(0, textFieldHandler.text.length() - 1);
+
+                    textShape = Client.computeTextShape(textFieldHandler.text, font);
+                }
+
+                textFieldHandler.onKeyTyped(textFieldHandler.text, false);
+            }
+        });
+
         controllers.initSDLGamepad();
     }
 
@@ -156,6 +199,13 @@ public enum Input
         scene.setCursor(usingMouseControls ? Cursor.DEFAULT : Cursor.NONE);
 
         scaledMousePosition = mousePosition.multiply(1 / scaleFactor);
+
+        if(textFieldHandler != null && Input.BACK.wasJustActivated())
+        {
+            textFieldHandler.cancel();
+
+            textFieldHandler = null;
+        }
     }
 
     private static void recordDigitalValue(Input input, boolean digitalValue)
@@ -219,9 +269,9 @@ public enum Input
         return shiftPressed;
     }
 
-    public static void setOnKeyTypedHandler(EventHandler<KeyEvent> onKeyTypedHandler)
+    public static void setTextFieldHandler(TextFieldHandler textFieldHandler)
     {
-        scene.setOnKeyTyped(onKeyTypedHandler);
+        Input.textFieldHandler = textFieldHandler;
     }
 
     public static void setOnScrollHandler(EventHandler<ScrollEvent> onScrollHandler)
@@ -237,6 +287,11 @@ public enum Input
     public static void setForceMouseVisible(boolean forceMouseVisible)
     {
         Input.forceMouseVisible = forceMouseVisible;
+    }
+
+    public static boolean isTextFieldActive()
+    {
+        return textFieldHandler != null;
     }
 
     public boolean isActive()
