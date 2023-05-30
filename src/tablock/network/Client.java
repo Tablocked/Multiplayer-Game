@@ -6,7 +6,7 @@ import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -20,15 +20,12 @@ import tablock.gameState.TitleState;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class Client extends Network
 {
-	private static final String SAVE_DIRECTORY = System.getenv("APPDATA") + "/MultiplayerGame/";
 	public Player player = null;
 	public String name = "Player";
 	public final List<Byte> hostIdentifiers = new ArrayList<>();
@@ -44,35 +41,6 @@ public class Client extends Network
 	public static void main(String[] args)
 	{
 		launch(args);
-	}
-
-	private static void createFolder(String path)
-	{
-		Path fullPath = Path.of(SAVE_DIRECTORY + path);
-
-		try
-		{
-			if(!Files.exists(fullPath))
-				Files.createDirectory(fullPath);
-		}
-		catch(IOException exception)
-		{
-			exception.printStackTrace();
-		}
-	}
-
-	public static Image getTexture(String textureName)
-	{
-		InputStream inputStream = Client.class.getClassLoader().getResourceAsStream("textures/" + textureName + ".png");
-
-		assert inputStream != null;
-
-		return new Image(inputStream);
-	}
-
-	public static File getSavedData(String savedDataPath)
-	{
-		return new File(SAVE_DIRECTORY + savedDataPath);
 	}
 
 	public static byte[] serializeObject(Object object)
@@ -160,9 +128,6 @@ public class Client extends Network
 		Scene scene = new Scene(new Group(canvas));
 		double scaleFactor = Screen.getPrimary().getBounds().getWidth() / 1920;
 
-		createFolder("");
-		createFolder("levels");
-
 		Input.initialize(scene);
 		GameState.initialize(this);
 
@@ -215,9 +180,9 @@ public class Client extends Network
 		renderLoop.start();
 
 		stage.setScene(scene);
-//		stage.setFullScreenExitHint("");
-//		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-//		stage.setFullScreen(true);
+		stage.setFullScreenExitHint("");
+		stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+		stage.setFullScreen(true);
 		stage.show();
 	}
 

@@ -91,7 +91,7 @@ public class LevelSelectState extends GameState
         try
         {
             byte[] serializedLevel = Client.serializeObject(new Level());
-            String levelDirectory = Client.getSavedData("levels").getPath() + "/";
+            String levelDirectory = new File("C:\\Users\\Alexander\\Documents\\Multiplayer Game Setup\\IDEPlayerData").getPath() + "/";
             String levelName = "Unnamed 0";
             Path levelPath = Path.of(levelDirectory + levelName);
 
@@ -133,7 +133,7 @@ public class LevelSelectState extends GameState
     private void updateLevelFiles()
     {
         levelFiles.clear();
-        levelFiles.addAll(List.of(Objects.requireNonNull(Client.getSavedData("levels").listFiles())));
+        levelFiles.addAll(List.of(Objects.requireNonNull(new File("C:\\Users\\Alexander\\Documents\\Multiplayer Game Setup\\IDEPlayerData").listFiles())));
     }
 
     private Level deserializeLevel(File level)

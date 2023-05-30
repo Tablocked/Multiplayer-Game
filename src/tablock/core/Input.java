@@ -37,9 +37,9 @@ public enum Input
     DISPLAY_INFO,
     PAUSE,
     SELECT,
-    BACK("nintendoB", "playstationCircle", "keyboardEscape", "mouseRight"),
-    PREVIOUS_PAGE("nintendoLeftButton", "playstationLeftButton", "keyboardQ"),
-    NEXT_PAGE("nintendoRightButton", "playstationRightButton", "keyboardE");
+    BACK(Texture.NINTENDO_B, Texture.PLAYSTATION_CIRCLE, Texture.KEYBOARD_ESCAPE, Texture.MOUSE_RIGHT),
+    PREVIOUS_PAGE(Texture.NINTENDO_LEFT_BUTTON, Texture.PLAYSTATION_LEFT_BUTTON, Texture.KEYBOARD_Q),
+    NEXT_PAGE(Texture.NINTENDO_RIGHT_BUTTON, Texture.PLAYSTATION_RIGHT_BUTTON, Texture.KEYBOARD_E);
     private static final ControllerManager controllers = new ControllerManager();
     private static Point2D mousePosition = new Point2D(-1, -1);
     private static Point2D scaledMousePosition;
@@ -54,27 +54,33 @@ public enum Input
     private static final List<MouseButton> mouseButtonsPressed = new ArrayList<>();
     private double value;
     private boolean activePreviousFrame = false;
-    private Image nintendoImage;
-    private Image playStationImage;
-    private Image keyboardImage;
-    private Image mouseImage;
+    private final Image nintendoButtonTexture;
+    private final Image playStationButtonTexture;
+    private final Image keyboardButtonTexture;
+    private Image mouseButtonTexture;
 
-    Input() {}
-
-    Input(String nintendoImageName, String playStationImageName, String keyboardImageName)
+    Input()
     {
-        this.nintendoImage = Client.getTexture(nintendoImageName);
-        this.playStationImage = Client.getTexture(playStationImageName);
-        this.keyboardImage = Client.getTexture(keyboardImageName);
-
-        mouseImage = keyboardImage;
+        nintendoButtonTexture = null;
+        playStationButtonTexture = null;
+        keyboardButtonTexture = null;
+        mouseButtonTexture = null;
     }
 
-    Input(String nintendoImageName, String playStationImageName, String keyboardImageName, String mouseImageName)
+    Input(Texture nintendoButtonTexture, Texture playStationButtonTexture, Texture keyboardButtonTexture)
     {
-        this(nintendoImageName, playStationImageName, keyboardImageName);
+        this.nintendoButtonTexture = nintendoButtonTexture.get();
+        this.playStationButtonTexture = playStationButtonTexture.get();
+        this.keyboardButtonTexture = keyboardButtonTexture.get();
 
-        this.mouseImage = Client.getTexture(mouseImageName);
+        mouseButtonTexture = this.keyboardButtonTexture;
+    }
+
+    Input(Texture nintendoButtonTexture, Texture playStationButtonTexture, Texture keyboardButtonTexture, Texture mouseButtonTexture)
+    {
+        this(nintendoButtonTexture, playStationButtonTexture, keyboardButtonTexture);
+
+        this.mouseButtonTexture = mouseButtonTexture.get();
     }
 
     public static void initialize(Scene scene)
@@ -315,10 +321,10 @@ public enum Input
         String controllerType = controller.controllerType;
 
         if(controller.isConnected)
-            return controllerType.contains("Nintendo") ? nintendoImage : playStationImage;
+            return controllerType.contains("Nintendo") ? nintendoButtonTexture : playStationButtonTexture;
         else if(usingMouseControls)
-            return mouseImage;
+            return mouseButtonTexture;
         else
-            return keyboardImage;
+            return keyboardButtonTexture;
     }
 }

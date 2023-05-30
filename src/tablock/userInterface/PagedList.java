@@ -5,6 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import tablock.core.Input;
+import tablock.core.Texture;
 import tablock.gameState.TitleState;
 import tablock.network.Client;
 
@@ -20,8 +21,8 @@ public abstract class PagedList<T>
     private final String headerText;
     private final InputIndicator inputIndicator = new InputIndicator();
     private final TextButton backButton;
-    private final ImageButton leftArrowButton = new ImageButton(870, 880, Client.getTexture("leftArrowButton"), () -> {page--; createButtons();});
-    private final ImageButton rightArrowButton = new ImageButton(1050, 900, Client.getTexture("rightArrowButton"), () -> {page++; createButtons();});
+    private final ImageButton leftArrowButton = new ImageButton(870, 880, Texture.LEFT_ARROW_BUTTON.get(), () -> {page--; createButtons();});
+    private final ImageButton rightArrowButton = new ImageButton(1050, 900, Texture.RIGHT_ARROW_BUTTON.get(), () -> {page++; createButtons();});
 
     public PagedList(List<T> list, String headerText, Client client)
     {

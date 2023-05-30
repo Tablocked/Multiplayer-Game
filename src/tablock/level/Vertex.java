@@ -24,7 +24,7 @@ public class Vertex extends Selectable
 
     public static void renderAddVertex(double x, double y, GraphicsContext gc)
     {
-        gc.drawImage(Texture.ADD_VERTEX_TEXTURE, x - 12.5, y - 12.5);
+        gc.drawImage(Texture.ADD_VERTEX.get(), x - 12.5, y - 12.5);
         gc.setFill(Color.rgb(255, 200, 0, 0.5));
         gc.fillOval(x - 15, y - 15, 30, 30);
     }
@@ -40,7 +40,7 @@ public class Vertex extends Selectable
     {
         gc.setFill(Color.rgb(255, 200, 0));
         gc.fillOval(platform.screenXValues[index] - 15, platform.screenYValues[index] - 15, 30, 30);
-        gc.drawImage(Texture.VERTEX_TEXTURE, platform.screenXValues[index] - 12.5, platform.screenYValues[index] - 12.5);
+        gc.drawImage(Texture.VERTEX.get(), platform.screenXValues[index] - 12.5, platform.screenYValues[index] - 12.5);
     }
 
     @Override
